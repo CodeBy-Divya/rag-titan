@@ -20,6 +20,20 @@ except ImportError:
     # from environment variables and overrides
     load_dotenv = None
 
+# chat and agent models used when LLM_MODEL / AGENT_MODEL are not set,
+# so switching LLM_PROVIDER alone is enough
+DEFAULT_MODELS = {
+    "ollama": {"llm_model": "gemma3:4b", "agent_model": "qwen3:4b"},
+    "anthropic": {"llm_model": "claude-haiku-5-5", "agent_model": "claude-haiku-5-5"},
+}
+PROVIDER_ALIASES = {"claude": "anthropic"}
+
+
+def provider_name(name):
+    """Turn "Claude", " anthropic " and the like into the provider's real name."""
+    name = str(name).strip().lower()
+    return PROVIDER_ALIASES.get(name, name)
+
 
 def _get_int(name, default):
     """Read a whole number from the environment, or use the default."""
@@ -70,11 +84,11 @@ def get_settings(overrides=None):
     settings = {
         # LLM used by RAG
         "llm_provider": os.getenv("LLM_PROVIDER", "ollama"),
-        "llm_model": os.getenv("LLM_MODEL", "gemma3:4b"),
+        "llm_model": os.getenv("LLM_MODEL"),          # None: the provider's default
         "ollama_host": os.getenv("OLLAMA_HOST", "http://localhost:11434"),
 
         # LLM used by agents (needs tool-calling support)
-        "agent_model": os.getenv("AGENT_MODEL", "qwen3:4b"),
+        "agent_model": os.getenv("AGENT_MODEL"),      # None: the provider's default
         "agent_think": _get_bool("AGENT_THINK", True),
         "agent_max_steps": _get_int("AGENT_MAX_STEPS", 5),
 
@@ -99,4 +113,14 @@ def get_settings(overrides=None):
     if overrides:
         settings.update(overrides)
 
+    # fill the models last, so an overridden provider gets its own defaults
+    _fill_default_models(settings)
     return settings
+
+
+def _fill_default_models(settings):
+    """Set llm_model and agent_model to the provider's defaults when they are empty."""
+    defaults = DEFAULT_MODELS.get(provider_name(settings["llm_provider"]), DEFAULT_MODELS["ollama"])
+    for key, model in defaults.items():
+        if not settings.get(key):
+            settings[key] = model
