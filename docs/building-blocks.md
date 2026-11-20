@@ -14,7 +14,7 @@ Answering:  Retriever -> Reranker -> Generator  (each uses the LLM / Embedder)
 
 | Part      | Base class      | Ready-made classes                                | Folder                 |
 |-----------|-----------------|---------------------------------------------------|------------------------|
-| LLM       | `BaseLLM`       | `OllamaLLM`, `FunctionLLM`, `ReplayLLM`           | `llm/`                 |
+| LLM       | `BaseLLM`       | `OllamaLLM`, `AnthropicLLM`, `FunctionLLM`, `ReplayLLM` | `llm/`                 |
 | Loader    | `BaseLoader`    | `PdfLoader`, `DocxLoader`, `TextLoader`           | `loaders/`             |
 | Chunker   | `BaseChunker`   | 8 chunkers, see [Chunking methods](chunking.md)   | `chunking/`            |
 | Embedder  | `BaseEmbedder`  | `OllamaEmbedder`, `HashEmbedder`, `FunctionEmbedder`, `ReplayEmbedder` | `embeddings/` |

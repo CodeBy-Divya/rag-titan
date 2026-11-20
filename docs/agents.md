@@ -26,6 +26,9 @@ The agent model must support tool calling, for example `qwen3:4b`:
 ollama pull qwen3:4b
 ```
 
+Claude works too: set `LLM_PROVIDER=claude` and `ANTHROPIC_API_KEY`
+(see [Claude (Anthropic)](configuration.md#claude-anthropic)).
+
 ## Your own agent
 
 A tool is a plain Python function. Its **docstring is sent to the LLM**, so
