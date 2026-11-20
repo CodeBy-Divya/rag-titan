@@ -147,3 +147,17 @@ def test_near_copies_are_removed_after_fusing_not_before():
     assert [c["id"] for c in picked] == ["chunk_2", "chunk_8"]     # one copy, then the rest
     assert picked[0]["score_trace"]["dense_rank"] == 1
     assert picked[0]["score_trace"]["bm25_rank"] == 2               # both searches voted for it
+
+
+def test_equal_rrf_scores_go_to_the_stronger_evidence():
+    """#1 + #2 and #2 + #1 tie on RRF; the chunk with more relevance in total wins."""
+    weak_keyword = {"id": "vpn", "source": "a.md", "text": "vpn", "score": 0.40, "score_trace": {}}
+    strong_keyword = {"id": "account", "source": "b.md", "text": "account", "score": 1.0,
+                      "score_trace": {}}
+    dense = [{**weak_keyword, "score": 0.67}, {**strong_keyword, "score": 0.65}]
+
+    fused = HybridRetriever(None, None).fuse({"dense": dense, "bm25": [strong_keyword,
+                                                                       weak_keyword]})
+
+    assert [chunk["id"] for chunk, _ in fused] == ["account", "vpn"]
+    assert fused[0][1]["rrf"] == pytest.approx(fused[1][1]["rrf"])

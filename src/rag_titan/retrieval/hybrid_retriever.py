@@ -106,10 +106,12 @@ class HybridRetriever(BaseRetriever):
             lists: {"dense": [chunks, best first], "bm25": [...]}.
 
         Returns:
-            A list of (chunk, score_trace) pairs, best fused score first; equal
-            scores keep the order in which chunks were first seen.
+            A list of (chunk, score_trace) pairs, best fused score first.
+            Equal RRF scores are common with two lists (first + second place
+            in one order or the other), so they are broken by the 0-1
+            relevance summed over the lists; then by the order first seen.
         """
-        chunks, traces, first_seen = {}, {}, {}
+        chunks, traces, relevance, first_seen = {}, {}, {}, {}
         for name, results in lists.items():
             for rank, result in enumerate(results, start=1):
                 key = result["id"]
@@ -119,8 +121,11 @@ class HybridRetriever(BaseRetriever):
                 trace[name] = result["score_trace"].get(name, result["score"])
                 trace[f"{name}_rank"] = rank
                 trace["rrf"] += 1 / (self.k + rank)
+                relevance[key] = relevance.get(key, 0.0) + result["score"]
 
-        order = sorted(chunks, key=lambda key: (-traces[key]["rrf"], first_seen[key]))
+        # rounding makes "equal" robust to float noise in the sums of 1 / (k + rank)
+        order = sorted(chunks, key=lambda key: (-round(traces[key]["rrf"], 12), -relevance[key],
+                                                first_seen[key]))
         return [(chunks[key], traces[key]) for key in order]
 
 

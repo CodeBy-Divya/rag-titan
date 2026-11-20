@@ -8,7 +8,7 @@ so it always matches what is indexed (also for a saved store after a restart).
 """
 
 from rag_titan.retrieval.base_retriever import BaseRetriever
-from rag_titan.retrieval.bm25 import BM25Index
+from rag_titan.retrieval.bm25 import STOPWORDS, BM25Index
 from rag_titan.retrieval.dedupe import remove_duplicates
 from rag_titan.utils.logger import get_logger
 
@@ -25,16 +25,18 @@ class BM25Retriever(BaseRetriever):
         b: length normalisation, from 0 (none) to 1 (full).
         dedupe_overlap: drop a result that overlaps a better one from the same
             file by at least this share (like DenseRetriever); None keeps all.
+        stopwords: words never scored; the default skips common English words,
+            () scores every word (use your own set for other languages).
     """
 
     name = "bm25"
     label = "Keyword search"
 
-    def __init__(self, store, k1=1.5, b=0.75, dedupe_overlap=0.5):
+    def __init__(self, store, k1=1.5, b=0.75, dedupe_overlap=0.5, stopwords=STOPWORDS):
         if dedupe_overlap is not None and not 0 < dedupe_overlap <= 1:
             raise ValueError("dedupe_overlap must be more than 0 and at most 1, or None")
         BM25Index([], k1, b)                # checks k1 and b now, not at the first search
-        self.store, self.k1, self.b = store, k1, b
+        self.store, self.k1, self.b, self.stopwords = store, k1, b, frozenset(stopwords)
         self.dedupe_overlap = dedupe_overlap
         self._cache = None                  # (store version, chunks, BM25Index)
 
@@ -72,7 +74,8 @@ class BM25Retriever(BaseRetriever):
         version = self._store_version()
         if self._cache is None or self._cache[0] != version:
             chunks = sorted(self.store.all_chunks(), key=_chunk_order)
-            index = BM25Index([chunk["text"] for chunk in chunks], self.k1, self.b)
+            index = BM25Index([chunk["text"] for chunk in chunks], self.k1, self.b,
+                              self.stopwords)
             logger.info("Built the BM25 index over %d chunks", len(chunks))
             self._cache = (version, chunks, index)
         return self._cache[1], self._cache[2]

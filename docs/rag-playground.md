@@ -35,18 +35,21 @@ and clicking *Fuse ranks* shows each chunk's rank in both searches.
 
 1. **Words or meaning.** Ask *When do I need a note from the doctor?* with
    `adaptive` + `word`, and tick the `dense` and `bm25` retrievers. Vector search
-   answers in 5 steps. Keyword search even puts the right chunk first, but the
-   evidence check says "no", and the model rewrites the question as *physician
-   verification / medical necessity documentation*: words that are not in the
-   policy, so the keyword retry finds nothing and it gives up after 9 steps.
+   answers in 5 steps. Keyword search finds only one chunk with the words
+   *doctor's note*, and it starts mid-sentence, without *from the third sick
+   day*, so the evidence check rightly says "no". The model then rewrites the
+   question as *physician statements or medical necessity letters*: words that
+   are not in the policy, so the keyword retry finds nothing at all and it gives
+   up after 9 steps.
 2. **A retry that works.** Ask *What is the maximum hotel cost per night?* with
-   `adaptive` + `paragraph` + `dense`: the first evidence check fails, the query
-   is rewritten, and the wider search (`top_k` 4 → 8) succeeds.
+   `adaptive` + `word` + `dense`: the first evidence check fails, the query is
+   rewritten as *Hotel nightly rates: maximum cost*, and the wider search
+   (`top_k` 4 → 8) succeeds.
 3. **Two files needed.** Ask the furniture question with `simple`: it keeps only
    two chunks, so the second file never reaches the model. With `adaptive` +
    `word` + `hybrid`, click **Fuse ranks**: `remote_work.md` comes first
-   (vector #2, keyword #1) with `expenses.md` close behind, and both files
-   reach the model.
+   (vector #1, keyword #1) and `expenses.md` third (vector #3, keyword #4), so
+   both files reach the model.
 4. **Compare everything.** Tick all chunkers, retrievers and RAG types and press
    **Evaluate all questions**. With six questions, one changed evidence check
    moves a score by 0.17, so treat small differences as noise, not as a winner.

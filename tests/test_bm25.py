@@ -7,7 +7,7 @@ import pytest
 from rag_titan.chunking import WordChunker
 from rag_titan.embeddings import HashEmbedder
 from rag_titan.pipelines import IndexingPipeline
-from rag_titan.retrieval import BM25Index, BM25Retriever, tokenize
+from rag_titan.retrieval import STOPWORDS, BM25Index, BM25Retriever, tokenize
 from rag_titan.vector_stores import BaseStore, MemoryStore, SQLiteStore
 
 TEXTS = ["leave days leave", "remote work days", "salary paid monthly"]
@@ -125,3 +125,13 @@ def test_a_store_that_cannot_list_chunks_says_so():
 
     with pytest.raises(NotImplementedError, match="RETRIEVER=dense"):
         BM25Retriever(TinyStore()).retrieve("leave")
+
+
+def test_common_words_are_skipped_unless_asked():
+    texts = ["the printer is on the second floor", "my laptop is new"]
+    assert BM25Index(texts).search("how is the weather") == []          # only common words
+    assert [n for n, _ in BM25Index(texts).search("where is my laptop")] == [1]
+    assert len(BM25Index(texts, stopwords=()).search("how is the weather")) == 2
+    assert tokenize("Where is my laptop", STOPWORDS) == ["laptop"]
+    german = BM25Index(["der Drucker ist im zweiten Stock"], stopwords={"der", "ist", "im"})
+    assert german.search("wo ist der Drucker")[0][0] == 0
