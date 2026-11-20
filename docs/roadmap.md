@@ -20,7 +20,8 @@
 - [x] LLMs: Anthropic Claude (`LLM_PROVIDER=claude`), available since 0.9.0
 - [ ] LLMs: OpenAI, Gemini, OpenRouter, Hugging Face
 - [ ] Embedders: OpenAI, sentence-transformers
-- [ ] Vector stores: Chroma, Qdrant, FAISS, pgvector
+- [x] Saved vector stores: SQLite (built in), Chroma, Qdrant; `rag-titan index`, add/replace files, embedder check, available since 0.10.0
+- [ ] Vector stores: FAISS, LanceDB, pgvector, Pinecone, then Weaviate, Milvus, Elasticsearch, Redis, MongoDB
 - [ ] Rerankers: cross-encoder, LLM reranker
 - [x] Loaders: TXT and Markdown (`TextLoader`), available since 0.3.0
 - [ ] Loaders: HTML, CSV

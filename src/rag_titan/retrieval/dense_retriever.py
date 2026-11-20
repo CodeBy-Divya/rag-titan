@@ -6,6 +6,7 @@ and find the most similar chunks in the vector store.
 from rag_titan.retrieval.base_retriever import BaseRetriever
 from rag_titan.retrieval.dedupe import remove_duplicates
 from rag_titan.utils.logger import get_logger
+from rag_titan.vector_stores.index_info import check_same_build
 
 logger = get_logger(__name__)
 
@@ -52,6 +53,7 @@ class DenseRetriever(BaseRetriever):
             return []
 
         query_vector = self.embedder.embed(query)
+        check_same_build(self.store.get_info(), self.embedder.model, len(query_vector))
         if self.dedupe_overlap is None:
             matches = self.store.search(query_vector, top_k=top_k)
         else:

@@ -28,6 +28,10 @@ DEFAULT_MODELS = {
 }
 PROVIDER_ALIASES = {"claude": "anthropic"}
 
+# where a saved index lives when VECTOR_STORE_PATH is not set: a file or a folder
+DEFAULT_STORE_PATHS = {"sqlite": "rag_titan.db", "chroma": "rag_titan_chroma",
+                       "qdrant": "rag_titan_qdrant"}
+
 
 def provider_name(name):
     """Turn "Claude", " anthropic " and the like into the provider's real name."""
@@ -71,15 +75,14 @@ def get_settings(overrides=None):
     Build the settings dictionary.
 
     Args:
-        overrides: optional dict of settings that win over the
-            environment, for example {"chunk_size": 200}.
+        overrides: optional dict of settings that win over the environment,
+            for example {"chunk_size": 200}.
 
     Returns:
         A dict with every setting the package uses.
     """
-    # read the .env file only when settings are requested, not on import
     if load_dotenv is not None:
-        load_dotenv()
+        load_dotenv()           # read .env only when settings are requested, not on import
 
     settings = {
         # LLM used by RAG
@@ -103,7 +106,7 @@ def get_settings(overrides=None):
         "chunk_encoding": os.getenv("CHUNK_ENCODING", "cl100k_base"),  # token chunker only
 
         # Storage, retrieval and generation
-        "vector_store": os.getenv("VECTOR_STORE", "memory"),
+        **_store_settings(),
         # drop a search result that overlaps a better one by this share ("off" keeps all)
         "dedupe_overlap": _get_overlap("DEDUPE_OVERLAP", 0.5),
         "reranker": os.getenv("RERANKER", "keyword"),
@@ -113,14 +116,28 @@ def get_settings(overrides=None):
     if overrides:
         settings.update(overrides)
 
-    # fill the models last, so an overridden provider gets its own defaults
-    _fill_default_models(settings)
+    # fill these last, so an overridden provider or store gets its own defaults
+    _fill_defaults(settings)
     return settings
 
 
-def _fill_default_models(settings):
-    """Set llm_model and agent_model to the provider's defaults when they are empty."""
+def _store_settings():
+    """Read the vector store settings from the environment."""
+    return {
+        "vector_store": os.getenv("VECTOR_STORE", "memory"),
+        "vector_store_path": os.getenv("VECTOR_STORE_PATH"),  # None: the store's default
+        "vector_store_url": os.getenv("VECTOR_STORE_URL"),    # chroma/qdrant server
+        "collection": os.getenv("COLLECTION", "rag_titan"),   # chroma/qdrant
+    }
+
+
+def _fill_defaults(settings):
+    """Fill empty models and store path with the provider's and the store's defaults."""
     defaults = DEFAULT_MODELS.get(provider_name(settings["llm_provider"]), DEFAULT_MODELS["ollama"])
     for key, model in defaults.items():
         if not settings.get(key):
             settings[key] = model
+
+    store = str(settings["vector_store"]).strip().lower()
+    if not settings.get("vector_store_path"):
+        settings["vector_store_path"] = DEFAULT_STORE_PATHS.get(store)

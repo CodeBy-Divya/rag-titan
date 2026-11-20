@@ -1,5 +1,5 @@
 """
-Tests for running without ollama, pypdf, python-docx and python-dotenv (like in
+Tests for running without ollama, pypdf, python-docx, python-dotenv and sqlite3 (like in
 the browser), HashEmbedder, and recording/replaying models.
 The Ollama host settings are tested in test_ollama_models.py.
 """
@@ -20,7 +20,7 @@ from rag_titan.llm import RecordingLLM, ReplayLLM
 
 BLOCKED_RUN = textwrap.dedent("""
     import sys
-    for name in ["ollama", "pypdf", "docx", "dotenv"]:
+    for name in ["ollama", "pypdf", "docx", "dotenv", "sqlite3"]:
         sys.modules[name] = None          # makes `import name` fail, like in Pyodide
 
     from rag_titan import SimpleRAG, get_settings

@@ -5,6 +5,7 @@ Offline indexing, shared by every RAG type:
 
 from rag_titan.loaders.loader_registry import load_document
 from rag_titan.utils.logger import get_logger
+from rag_titan.vector_stores.index_info import build_info, check_same_build
 
 logger = get_logger(__name__)
 
@@ -31,6 +32,8 @@ class IndexingPipeline:
         Args:
             file_paths: list of file paths to index.
             reset: when True, clear the store before adding new chunks.
+                When False, add to what is stored: a file indexed before is
+                replaced, and chunk ids go on after the stored ones.
 
         Returns:
             The number of chunks stored.
@@ -45,14 +48,46 @@ class IndexingPipeline:
             return 0
 
         vectors = self.embedder.embed_many([chunk["text"] for chunk in chunks])
+        dimensions = len(vectors[0])
 
         if reset:
             self.store.clear()
+            first = 0
+        else:
+            first = self._make_room(documents, dimensions)
+
+        for number, chunk in enumerate(chunks, start=first):
+            chunk["id"] = f"chunk_{number}"     # unique in the whole index
 
         self.store.add(chunks, vectors)
+        self.store.set_info(build_info(self.embedder, self.chunker, dimensions,
+                                       first + len(chunks)))
         logger.info("Stored %d chunks in the vector store", self.store.count())
 
         return len(chunks)
+
+    def _make_room(self, documents, dimensions):
+        """
+        Get the store ready to add more chunks; return the first new chunk number.
+
+        Checks that the same embedder built the index (nothing is changed when
+        it did not), then removes older chunks of files that are indexed again.
+        """
+        info = self.store.get_info()
+        check_same_build(info, self.embedder.model, dimensions)
+
+        for source in sorted({document["source"] for document in documents}):
+            try:
+                removed = self.store.delete_source(source)
+            except NotImplementedError:
+                logger.warning("%s cannot replace files; chunks of %s may be stored twice",
+                               type(self.store).__name__, source)
+                continue
+            if removed:
+                logger.info("Replaced %d old chunks of %s", removed, source)
+
+        # stores without info (custom stores written before 0.10.0) count instead
+        return info["next_chunk"] if info else self.store.count()
 
     def load_documents(self, file_paths):
         """Load every file and skip the ones without any text."""

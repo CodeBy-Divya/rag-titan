@@ -3,6 +3,8 @@ Command line tool, installed as `rag-titan`.
 
 Examples:
     rag-titan ask --files handbook.pdf --question "How many leave days?"
+    rag-titan index --files handbook.pdf --vector-store sqlite      # index once ...
+    rag-titan ask --question "How many leave days?" --vector-store sqlite   # ... ask later
     rag-titan ask --files handbook.pdf --question "How many leave days?" --trace
     rag-titan chat --files handbook.pdf policy.docx --rag-type adaptive
     rag-titan evaluate --files *.md --questions questions.json \\
@@ -19,6 +21,7 @@ from pathlib import Path
 from rag_titan import __version__
 from rag_titan.app import RAGTitan
 from rag_titan.cli_golden import add_golden_command, run_golden
+from rag_titan.cli_index import add_index_command, add_store_options, prepare_rag, run_index
 from rag_titan.evaluation import (
     compare_setups,
     evaluate_file,
@@ -46,12 +49,12 @@ def build_parser():
     evaluate = commands.add_parser("evaluate", help="score RAG types on test questions")
 
     for command in (ask, chat, evaluate):
-        # evaluate can also read a data file (--input), so it checks --files itself
-        command.add_argument("--files", nargs="+", required=command is not evaluate,
-                             help="PDF, DOCX, MD or TXT files")
+        # optional: ask/chat can use a saved index, evaluate can read --input
+        command.add_argument("--files", nargs="+", help="PDF, DOCX, MD or TXT files")
         command.add_argument("--log-level", default="WARNING", help="DEBUG, INFO or WARNING")
     for command in (ask, chat):
         command.add_argument("--rag-type", default="simple", choices=RAG_TYPES)
+        add_store_options(command)
 
     ask.add_argument("--question", required=True, help="the question to answer")
     ask.add_argument("--trace", action="store_true", help="also print every step taken")
@@ -68,6 +71,7 @@ def build_parser():
     evaluate.add_argument("--top-k", type=int, default=5, help="chunks per search (retrieval only)")
     add_data_options(evaluate)
     add_golden_command(commands)
+    add_index_command(commands)
     return parser
 
 
@@ -129,7 +133,8 @@ def run_evaluate(args):
     if args.retrieval_only:
         results = []
         for chunker in args.chunker or [None]:
-            rag = RAGTitan(settings=ingestion_settings(args, chunker))
+            # a temporary index: evaluating must never replace a saved one
+            rag = RAGTitan(settings={**ingestion_settings(args, chunker), "vector_store": "memory"})
             rag.index(args.files)
             results.append(evaluate_retriever(rag.parts["retriever"], questions, args.top_k,
                                               name=chunker or "dense"))
@@ -174,16 +179,12 @@ def main(argv=None):
     args = build_parser().parse_args(argv)
     setup_logging(args.log_level)
 
-    if args.command == "evaluate":
-        run_evaluate(args)
-        return
-    if args.command == "golden":
-        run_golden(args)
+    runners = {"evaluate": run_evaluate, "golden": run_golden, "index": run_index}
+    if args.command in runners:
+        runners[args.command](args)
         return
 
-    rag = RAGTitan(rag_type=args.rag_type)
-    chunk_count = rag.index(args.files)
-    print(f"Indexed {chunk_count} chunks from {len(args.files)} file(s).")
+    rag = prepare_rag(args)
 
     if args.command == "chat":
         run_chat(rag)

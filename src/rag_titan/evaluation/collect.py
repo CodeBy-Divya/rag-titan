@@ -28,7 +28,9 @@ def collect_dataset(rag, files, questions, include_embeddings=False):
 
     Args:
         rag: a RAGTitan.
-        files: list of file paths to index (the index is rebuilt).
+        files: list of file paths to index (the index is rebuilt; an index
+            saved on disk, like VECTOR_STORE=sqlite, is left alone: a
+            temporary in-memory copy of the setup is used instead).
         questions: path to a golden questions JSON file, or a list of dicts.
         include_embeddings: also collect the chunk and query vectors for the
             embedding stage (embeds every question once more).
@@ -40,6 +42,7 @@ def collect_dataset(rag, files, questions, include_embeddings=False):
     questions = load_golden(questions)
     if not isinstance(files, list) or not files:
         raise ValueError("files must be a non-empty list of file paths")
+    rag = _temporary_copy(rag)
 
     loaded = rag.pipeline.load_documents(files)
     documents = {document["source"]: document["text"] for document in loaded}
@@ -56,6 +59,14 @@ def collect_dataset(rag, files, questions, include_embeddings=False):
     if include_embeddings:
         dataset["embeddings"] = _embeddings(rag, queries)
     return dataset
+
+
+def _temporary_copy(rag):
+    """Return the same setup with an in-memory index when rag's index is saved on disk."""
+    if not getattr(rag.pipeline.store, "persistent", False):
+        return rag
+    # type(rag) instead of importing RAGTitan, which imports this module
+    return type(rag)(rag.rag_type, {**rag.settings, "vector_store": "memory"})
 
 
 def _as_eval_chunk(chunk, documents):

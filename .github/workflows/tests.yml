@@ -21,3 +21,15 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: ruff check .
       - run: pytest
+
+  # Chroma and Qdrant are optional extras: the job above skips their tests,
+  # this one installs them and runs every store through the same checks
+  vector-stores:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev,chroma,qdrant]"
+      - run: pytest tests/test_chroma_qdrant_stores.py tests/test_sqlite_store.py tests/test_store_rules.py -rs

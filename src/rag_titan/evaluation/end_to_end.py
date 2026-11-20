@@ -139,7 +139,9 @@ def _run_question(rag, question):
 
 def _indexed_parts(files, overrides, indexes):
     """Return built and indexed parts, reusing them when the settings are the same."""
-    settings = get_settings(overrides)
+    # always a temporary in-memory index: comparing setups must never replace
+    # (or mix several setups into) an index saved with VECTOR_STORE=sqlite
+    settings = get_settings({**overrides, "vector_store": "memory"})
     key = json.dumps(settings, sort_keys=True, default=str)
 
     if key not in indexes:

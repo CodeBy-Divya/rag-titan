@@ -14,7 +14,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
 authors = [{ name = "Kumar Nishant" }]
-keywords = ["rag", "retrieval-augmented-generation", "llm", "ollama", "embeddings", "vector-search"]
+keywords = ["rag", "retrieval-augmented-generation", "llm", "ollama", "embeddings", "vector-search", "chroma", "qdrant", "sqlite"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -47,6 +47,13 @@ dev = [
 ]
 tokens = [
     "tiktoken>=0.7",
+]
+# saved vector stores (VECTOR_STORE=chroma / qdrant); sqlite needs nothing extra
+chroma = [
+    "chromadb>=1.0",
+]
+qdrant = [
+    "qdrant-client>=1.10",
 ]
 docs = [
     "mkdocs-material>=9.5",

@@ -91,11 +91,56 @@ is exact even in very repetitive text.
 | `BaseLoader`    | `extensions` list and `extract_text(path)`        |
 | `BaseChunker`   | `split_text(text)`                                |
 | `BaseEmbedder`  | `embed_many(texts)`                               |
-| `BaseStore`     | `add()`, `search()`, `clear()`, `count()`         |
+| `BaseStore`     | `add()`, `search()`, `clear()`, `count()`; saved stores also `delete_source()`, `get_info()`, `set_info()` |
 | `BaseRetriever` | `name`, `retrieve(query, top_k)`, `has_documents()` |
 | `BaseReranker`  | `score(query, match)`                             |
 | `BaseGenerator` | `generate(query, chunks)`                         |
 | `BaseRAG`       | `FLOW`, `run(query)` (`answer()` comes for free)  |
+
+## Example: a new vector store
+
+A store needs four methods. Scores must be cosine similarity (higher is
+closer), so rerankers and evaluation work the same with every store.
+
+```python
+from rag_titan.vector_stores import BaseStore
+
+
+class MyStore(BaseStore):
+    persistent = True            # it keeps the index: evaluation then uses a temporary copy
+
+    def add(self, chunks, vectors): ...          # save each chunk dict with its vector
+    def search(self, query_vector, top_k=5): ... # best first: chunk dict + "score"
+    def clear(self): ...                         # remove everything, info included
+    def count(self): ...                         # how many chunks are stored
+
+    # for a store that keeps the index, also:
+    def delete_source(self, source): ...         # remove one file's chunks, return how many
+    def get_info(self): ...                      # the dict given to set_info(), or None
+    def set_info(self, info): ...                # save how the index was built
+```
+
+Without the last three it still works: adding a file that is already indexed
+then stores it twice (with a warning), and the embedder check is skipped.
+
+Check it with the same tests every built-in store passes, in your own test file:
+
+```python
+from store_contract import StoreContract     # tests/store_contract.py
+
+
+class TestMyStore(StoreContract):
+    persistent = True
+
+    def make_store(self, tmp_path):
+        return MyStore(tmp_path / "index")
+
+    def reopen(self, store, tmp_path):        # a new object on the same data
+        return MyStore(tmp_path / "index")
+```
+
+Then add a line to `build_store()` in `vector_stores/store_registry.py` and its
+name to `VECTOR_STORES`, so `VECTOR_STORE=mine` picks it.
 
 ## Example: any function as a model
 
