@@ -6,6 +6,27 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-20
+
+### Added
+- **Claude (Anthropic) as the LLM**: `LLM_PROVIDER=claude` (or `anthropic`) and
+  your `ANTHROPIC_API_KEY`. Works for RAG answers and for agents (tool calling).
+  Plain HTTP with the standard library, so nothing extra to install. Setup:
+  [Claude (Anthropic)](https://aion7891.github.io/rag-titan/configuration/#claude-anthropic).
+  Thanks to @suvi-tiwary for the first version (#23).
+- `AnthropicLLM(model="claude-haiku-5-5", api_key=None, max_tokens=2048,
+  temperature=None)` in `rag_titan.llm`. Errors show Anthropic's own reason
+  (like "invalid x-api-key") and never the key; a reply cut off at `max_tokens`
+  logs a warning.
+- Default models per provider: leave `LLM_MODEL` / `AGENT_MODEL` unset and they
+  follow `LLM_PROVIDER` (Ollama: `gemma3:4b` / `qwen3:4b`, Claude:
+  `claude-haiku-5-5`), so changing the provider alone is enough.
+- An unknown `LLM_PROVIDER` now lists the valid choices.
+
+### Changed
+- `.env.example` leaves `LLM_MODEL` and `AGENT_MODEL` commented out, so a copied
+  file follows the provider's defaults. Setting them works as before.
+
 ## [0.8.5] - 2026-11-13
 
 ### Added

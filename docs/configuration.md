@@ -15,10 +15,11 @@ cp .env.example .env
 
 | Variable          | Settings key      | Default                  | Meaning                                        |
 |-------------------|-------------------|--------------------------|------------------------------------------------|
-| `LLM_PROVIDER`    | `llm_provider`    | `ollama`                 | Who runs the chat model                        |
-| `LLM_MODEL`       | `llm_model`       | `gemma3:4b`              | Chat model for answers                         |
+| `LLM_PROVIDER`    | `llm_provider`    | `ollama`                 | `ollama`, or `claude` / `anthropic` (below)    |
+| `LLM_MODEL`       | `llm_model`       | provider's (`gemma3:4b`) | Chat model for answers                         |
 | `OLLAMA_HOST`     | `ollama_host`     | `http://localhost:11434` | Ollama server address                          |
-| `AGENT_MODEL`     | `agent_model`     | `qwen3:4b`               | Model for agents (needs tools)                 |
+| `ANTHROPIC_API_KEY` | –               | –                        | Your Claude key (`claude` only)                |
+| `AGENT_MODEL`     | `agent_model`     | provider's (`qwen3:4b`)  | Model for agents (needs tools)                 |
 | `AGENT_THINK`     | `agent_think`     | `true`                   | Turn on thinking for agents                    |
 | `AGENT_MAX_STEPS` | `agent_max_steps` | `5`                      | Max agent think/tool rounds                    |
 | `EMBED_PROVIDER`  | `embed_provider`  | `ollama`                 | `ollama`, or `hash` (no model, see below)      |
@@ -57,6 +58,49 @@ LLM_MODEL=gpt-oss:20b-cloud
 Cloud models need usage credits on your Ollama account; without them a request
 fails with "Add usage credits or subscribe" (status 402). Keep `EMBED_MODEL`
 on a local model if your plan has no cloud embeddings.
+
+## Claude (Anthropic)
+
+Let Claude write the answers instead of a local model. Nothing extra to install.
+
+1. Get an API key at [console.anthropic.com](https://console.anthropic.com).
+2. Put it in your `.env` (never commit this file) and pick the provider:
+
+    ```bash
+    LLM_PROVIDER=claude              # "anthropic" works too
+    ANTHROPIC_API_KEY=sk-ant-...
+    # LLM_MODEL=claude-sonnet-5-5    # optional, default: claude-haiku-5-5
+    ```
+
+3. Use rag-titan as before, or choose in code:
+
+    ```python
+    from rag_titan import RAGTitan
+
+    rag = RAGTitan(settings={"llm_provider": "claude"})
+    rag = RAGTitan(settings={"llm_provider": "claude", "llm_model": "claude-sonnet-5-5"})
+    ```
+
+| Provider | Answers (`LLM_MODEL`)  | Agents (`AGENT_MODEL`) |
+|----------|------------------------|------------------------|
+| `ollama` | `gemma3:4b`            | `qwen3:4b`             |
+| `claude` | `claude-haiku-5-5`     | `claude-haiku-5-5`     |
+
+These defaults are used only when you leave `LLM_MODEL` / `AGENT_MODEL` unset,
+so changing `LLM_PROVIDER` alone is enough.
+
+Good to know:
+
+- **Search still uses the embedder.** Claude writes the answers; turning text into
+  vectors stays with `EMBED_PROVIDER` (Ollama's `nomic-embed-text` by default, or
+  `hash` to run without Ollama at all).
+- **Your chunks leave your machine.** The question and the chunks found for it are
+  sent to Anthropic. Keep `ollama` for documents that must stay local.
+- **Agents work too:** Claude supports tool calling. `AGENT_THINK` only applies to Ollama.
+- **Errors are plain:** a missing key says to set `ANTHROPIC_API_KEY`; a wrong key or
+  model shows Anthropic's own message (the key itself is never printed).
+- In Python, `AnthropicLLM(model, api_key=None, max_tokens=2048, temperature=None)`
+  from `rag_titan.llm` can be used directly (see [Building blocks](building-blocks.md)).
 
 ## Without an embedding model
 

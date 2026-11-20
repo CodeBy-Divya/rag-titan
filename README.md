@@ -25,7 +25,7 @@
 ## Why rag-titan?
 
 - **Many RAG types, one API.** Two today (`simple`, `adaptive`), with more on the way. Switch with one word: `rag_type="adaptive"`.
-- **Runs 100% locally** with [Ollama](https://ollama.com), so your documents never leave your machine.
+- **Runs 100% locally** with [Ollama](https://ollama.com), so your documents never leave your machine. Or let **Claude** write the answers: `LLM_PROVIDER=claude` and your `ANTHROPIC_API_KEY`, nothing extra to install. [Setup →](https://aion7891.github.io/rag-titan/configuration/#claude-anthropic)
 - **Grounded answers.** The model answers only from your files and cites the chunks it used.
 - **Chunking your way.** Eight chunkers: by words, characters or model tokens (tiktoken or your own tokenizer), recursive separators, and structure-aware chunkers that keep sentences, paragraphs, heading sections or pages whole. [Try them live in the chunk playground →](https://aion7891.github.io/rag-titan/playground/)
 - **Watch every step, in your browser.** The [RAG playground →](https://aion7891.github.io/rag-titan/rag-playground/) runs the real package (Pyodide) side by side for any chunker and RAG type, and lights up each step on a live flow diagram: click a step to see the chunks it found. Recorded answers work instantly; a live mode with your own Ollama is work in progress.

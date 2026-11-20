@@ -19,9 +19,11 @@ from rag_titan.chunking.structure_aware import (
     ParagraphChunker,
     SentenceChunker,
 )
+from rag_titan.config import provider_name
 from rag_titan.embeddings.hash_embedder import HashEmbedder
 from rag_titan.embeddings.ollama_embedder import OllamaEmbedder
 from rag_titan.generation.grounded_generator import GroundedGenerator
+from rag_titan.llm.anthropic_llm import AnthropicLLM
 from rag_titan.llm.ollama_llm import OllamaLLM
 from rag_titan.pipelines.indexing_pipeline import IndexingPipeline
 from rag_titan.rag_types.adaptive.adaptive_rag import AdaptiveRAG
@@ -34,19 +36,31 @@ from rag_titan.vector_stores.memory_store import MemoryStore
 # every RAG type the package can build, used by build_rag() and the CLI
 RAG_TYPES = ["simple", "adaptive"]
 
+# every LLM provider build_llm() knows ("claude" also works for "anthropic")
+LLM_PROVIDERS = ["ollama", "anthropic", "claude"]
+
 # every chunker build_chunker() knows, used by the CLI
 CHUNKERS = ["word", "character", "token", "recursive", "sentence", "paragraph", "heading", "page"]
 
 
 def build_llm(settings, model=None, think=False):
-    """Create the chat model named in settings["llm_provider"]."""
-    name = settings["llm_provider"]
+    """
+    Create the chat model named in settings["llm_provider"].
+
+    "ollama" runs models locally; "anthropic" (or "claude") uses Claude and
+    reads the key from the ANTHROPIC_API_KEY environment variable.
+    """
+    name = provider_name(settings["llm_provider"])
     model = model or settings["llm_model"]
 
     if name == "ollama":
         return OllamaLLM(model, host=settings["ollama_host"], think=think)
 
-    raise ValueError(f"Unknown LLM provider: {name}")
+    if name == "anthropic":
+        return AnthropicLLM(model)
+
+    raise ValueError(f"Unknown LLM provider: {settings['llm_provider']!r}. "
+                     f"Use one of: {', '.join(LLM_PROVIDERS)}")
 
 
 def build_agent_llm(settings):

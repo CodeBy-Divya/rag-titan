@@ -17,7 +17,8 @@
 
 ## Building blocks
 
-- [ ] LLMs: OpenAI, Anthropic, Hugging Face
+- [x] LLMs: Anthropic Claude (`LLM_PROVIDER=claude`), available since 0.9.0
+- [ ] LLMs: OpenAI, Gemini, OpenRouter, Hugging Face
 - [ ] Embedders: OpenAI, sentence-transformers
 - [ ] Vector stores: Chroma, Qdrant, FAISS, pgvector
 - [ ] Rerankers: cross-encoder, LLM reranker
