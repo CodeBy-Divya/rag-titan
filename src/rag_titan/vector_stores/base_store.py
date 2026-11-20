@@ -50,12 +50,24 @@ class BaseStore:
             "reset=True, or implement delete_source()"
         )
 
+    def all_chunks(self):
+        """
+        Return every stored chunk (without its vector), for keyword search.
+
+        Returns:
+            A list of chunk dicts, in any order.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} cannot list its chunks, which BM25 and hybrid "
+            "search need: implement all_chunks(), or use RETRIEVER=dense"
+        )
+
     def get_info(self):
         """
         Return how the index was built, or None when unknown.
 
         Example: {"embed_model": "nomic-embed-text", "dimensions": 768,
-        "chunker": "WordChunker", "next_chunk": 58}
+        "chunker": "WordChunker", "next_chunk": 58, "revision": "3f2a9c01b7de"}
         """
         return None
 

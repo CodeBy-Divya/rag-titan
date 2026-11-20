@@ -49,6 +49,11 @@ class MemoryStore(BaseStore):
         self.records = kept
         return removed
 
+    def all_chunks(self):
+        """Return every chunk without its vector."""
+        return [{key: value for key, value in record.items() if key != "vector"}
+                for record in self.records]
+
     def get_info(self):
         """Return how the index was built, or None for an empty store."""
         return dict(self.info) if self.info else None

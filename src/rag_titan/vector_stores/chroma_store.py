@@ -99,6 +99,11 @@ class ChromaStore(BaseStore):
             self.collection.delete(ids=ids)
         return len(ids)
 
+    def all_chunks(self):
+        """Return every chunk without its vector."""
+        found = self.collection.get(include=["metadatas"])
+        return [json.loads(meta["chunk"]) for meta in found["metadatas"]]
+
     def get_info(self):
         """Return how the index was built, or None for an empty store."""
         found = self.info_collection.get(ids=["index"], include=["metadatas"])

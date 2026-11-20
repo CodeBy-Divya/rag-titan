@@ -42,8 +42,10 @@ def test_fresh_index_starts_at_chunk_0_and_saves_its_info(files):
     pipeline(store).run([files[0]])
 
     assert ids(store) == [0, 1]
-    assert store.get_info() == {"embed_model": "hash", "dimensions": 64,
-                                "chunker": "WordChunker", "next_chunk": 2}
+    info = store.get_info()
+    assert len(info.pop("revision")) == 12
+    assert info == {"embed_model": "hash", "dimensions": 64,
+                    "chunker": "WordChunker", "next_chunk": 2}
 
 
 def test_adding_a_file_continues_the_ids(files):

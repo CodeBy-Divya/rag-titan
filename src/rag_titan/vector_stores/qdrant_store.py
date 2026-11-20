@@ -120,6 +120,18 @@ class QdrantStore(BaseStore):
                                wait=True)
         return removed
 
+    def all_chunks(self):
+        """Return every chunk without its vector (read page by page)."""
+        if not self.client.collection_exists(self.name):
+            return []
+        chunks, offset = [], None
+        while True:
+            points, offset = self.client.scroll(self.name, limit=1000, offset=offset,
+                                                with_payload=True, with_vectors=False)
+            chunks.extend(point.payload["chunk"] for point in points)
+            if offset is None:
+                return chunks
+
     def get_info(self):
         """Return how the index was built, or None for an empty store."""
         name = self.name + "_info"
