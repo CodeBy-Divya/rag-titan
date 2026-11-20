@@ -36,7 +36,8 @@ def sqlite_rag(path="index.db"):
 def test_settings_build_the_store(tmp_path, monkeypatch):
     monkeypatch.delenv("VECTOR_STORE_PATH", raising=False)
     assert isinstance(build_store(get_settings()), MemoryStore)
-    assert get_settings()["vector_store_path"] == "rag_titan.db"
+    assert get_settings({"vector_store": "sqlite"})["vector_store_path"] == "rag_titan.db"
+    assert get_settings({"vector_store": "qdrant"})["vector_store_path"] == "rag_titan_qdrant"
 
     monkeypatch.setenv("VECTOR_STORE", " SQLite ")
     monkeypatch.setenv("VECTOR_STORE_PATH", str(tmp_path / "saved" / "my.db"))
@@ -44,7 +45,7 @@ def test_settings_build_the_store(tmp_path, monkeypatch):
     assert isinstance(store, SQLiteStore) and store.path == tmp_path / "saved" / "my.db"
 
     with pytest.raises(ValueError, match="Unknown vector store: 'chromadb'. Use one of: "
-                                         "memory, sqlite"):
+                                         "memory, sqlite, chroma, qdrant"):
         build_store(get_settings({"vector_store": "chromadb"}))
 
 

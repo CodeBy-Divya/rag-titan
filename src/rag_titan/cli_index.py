@@ -14,10 +14,10 @@ from rag_titan.vector_stores.store_registry import VECTOR_STORES
 def add_store_options(command):
     """Add --vector-store and --store-path, which win over VECTOR_STORE(_PATH) in .env."""
     command.add_argument("--vector-store", choices=VECTOR_STORES,
-                         help="memory (forgotten after the command) or sqlite (saved); "
-                              "default: VECTOR_STORE")
-    command.add_argument("--store-path", help="the saved index file (sqlite); "
-                                              "default: VECTOR_STORE_PATH or rag_titan.db")
+                         help="memory is forgotten after the command; the others are "
+                              "saved (chroma, qdrant need their extra). Default: VECTOR_STORE")
+    command.add_argument("--store-path", help="the saved index: a file (sqlite) or folder "
+                                              "(chroma, qdrant). Default: VECTOR_STORE_PATH")
 
 
 def add_index_command(commands):
@@ -83,4 +83,5 @@ def prepare_rag(args):
 
 def where(rag):
     """Name the saved index for messages, for example "rag_titan.db"."""
-    return str(getattr(rag.pipeline.store, "path", rag.settings["vector_store"]))
+    store = rag.pipeline.store
+    return str(getattr(store, "path", None) or getattr(store, "where", type(store).__name__))
