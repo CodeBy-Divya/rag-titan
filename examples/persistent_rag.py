@@ -34,7 +34,8 @@ if store.count() == 0:
 else:
     print(f"Using the saved index: {store.count()} chunks, no indexing needed")
 
-# 3. Add a file later: a file indexed before is replaced, not stored twice
+# 3. Add a file later. It runs on every run here, to show that a file indexed
+#    before is replaced (new chunk ids), not stored twice
 rag.index([DOCS / "remote_work.md"], reset=False)
 print(f"The index holds {store.count()} chunks")
 

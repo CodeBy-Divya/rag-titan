@@ -118,114 +118,160 @@ Set `VECTOR_STORE=sqlite` in `.env` and you can leave out `--vector-store`.
 
 ## A complete example
 
-[`examples/persistent_rag.py`](https://github.com/aion7891/rag-titan/blob/main/examples/persistent_rag.py)
-is a small RAG with a saved index. Each command is a separate run of Python,
-like coming back tomorrow: only `index` and `add` read files, `ask` answers
-straight from `hr_index.db`.
+Write a normal Python script: import `rag_titan`, create the RAG with a saved
+store, index, ask. The first run indexes; every later run finds the index in
+`hr_index.db` and skips straight to the questions.
+
+### With `RAGTitan` (simplest)
+
+[`examples/persistent_rag.py`](https://github.com/aion7891/rag-titan/blob/main/examples/persistent_rag.py):
 
 ```python
 """
-A RAG that keeps its index on disk: index once, ask later, add files as they change.
-
-Every command below is a separate run of Python, like a new session tomorrow:
-the index is saved in hr_index.db (one SQLite file) and read back from there.
+A RAG that keeps its index in a file: the first run indexes, every later run
+just asks. Run it twice to see the second run skip the indexing.
 
 Before running (Ollama installed and running):
     ollama pull gemma3:4b
     ollama pull nomic-embed-text
 
 Run (from the repo root):
-    python examples/persistent_rag.py index                 # 1. index the sample policies
-    python examples/persistent_rag.py ask "How many paid leave days do I get?"
-    python examples/persistent_rag.py add examples/sample_docs/remote_work.md
-    python examples/persistent_rag.py info                  # what the index holds
+    python examples/persistent_rag.py
 """
 
-import sys
 from pathlib import Path
 
 from rag_titan import RAGTitan
 
-SAMPLES = Path(__file__).parent / "sample_docs"
+DOCS = Path(__file__).parent / "sample_docs"
 
-# the only change from an in-memory RAG: a saved store and where to keep it
-SETTINGS = {
-    "vector_store": "sqlite",            # or "chroma" / "qdrant" (pip install their extra)
-    "vector_store_path": "hr_index.db",  # created on the first index
-}
+# 1. Create the RAG with a saved vector store: the index lives in hr_index.db
+rag = RAGTitan(
+    rag_type="simple",
+    settings={
+        "vector_store": "sqlite",            # or "chroma" / "qdrant" (pip install their extra)
+        "vector_store_path": "hr_index.db",  # created on the first run
+    },
+)
 
+# 2. Index the documents, only when the saved index is still empty
+store = rag.pipeline.store
+if store.count() == 0:
+    files = [DOCS / "leave_policy.md", DOCS / "expenses.md"]
+    print(f"Indexing {len(files)} files...")
+    rag.index(files)
+else:
+    print(f"Using the saved index: {store.count()} chunks, no indexing needed")
 
-def index():
-    """Build the index from scratch (anything indexed before is replaced)."""
-    rag = RAGTitan(settings=SETTINGS)
-    files = sorted(str(path) for path in SAMPLES.glob("*.md"))
-    chunk_count = rag.index(files)
-    print(f"Indexed {chunk_count} chunks from {len(files)} files into hr_index.db")
+# 3. Add a file later. It runs on every run here, to show that a file indexed
+#    before is replaced (new chunk ids), not stored twice
+rag.index([DOCS / "remote_work.md"], reset=False)
+print(f"The index holds {store.count()} chunks")
 
-
-def ask(question):
-    """Answer from the saved index: nothing is indexed here."""
-    rag = RAGTitan(settings=SETTINGS)
+# 4. Ask questions
+for question in ["How many paid leave days do I get?", "Can I work from home on Fridays?"]:
     result = rag.run(question)
-    print(f"Answer: {result['answer']}")
+    print(f"\nQ: {question}\nA: {result['answer']}")
     for chunk in result["sources"]:
-        print(f"  from {chunk['source']} ({chunk['id']}, score {chunk['score']:.2f})")
-
-
-def add(path):
-    """Add one file, or replace its old chunks if it was indexed before."""
-    rag = RAGTitan(settings=SETTINGS)
-    chunk_count = rag.index([path], reset=False)
-    print(f"Indexed {chunk_count} chunks from {Path(path).name}; "
-          f"the index now holds {rag.pipeline.store.count()} chunks")
-
-
-def info():
-    """Show what the saved index holds and how it was built."""
-    store = RAGTitan(settings=SETTINGS).pipeline.store
-    print(f"{store.count()} chunks, built with {store.get_info()}")
-
-
-def main(argv):
-    """Run one command: index, ask QUESTION, add FILE or info."""
-    commands = {"index": (index, 0), "ask": (ask, 1), "add": (add, 1), "info": (info, 0)}
-    if not argv or argv[0] not in commands or len(argv) - 1 != commands[argv[0]][1]:
-        raise SystemExit(__doc__)
-    command, _ = commands[argv[0]]
-    command(*argv[1:])
-
-
-if __name__ == "__main__":
-    main(sys.argv[1:])
+        print(f"   from {chunk['source']} ({chunk['id']})")
 ```
 
-What it printed with `gemma3:4b` and `nomic-embed-text`:
+What it printed with `gemma3:4b` and `nomic-embed-text`, run twice:
 
 ```text
-$ python examples/persistent_rag.py index
-Indexed 3 chunks from 3 files into hr_index.db
+$ python examples/persistent_rag.py
+Indexing 2 files...
+The index holds 3 chunks
 
-$ python examples/persistent_rag.py ask "How many paid leave days do I get?"
-Answer: Every full-time employee gets 20 paid leave days per calendar year [chunk_1]. Part-time employees get leave days in proportion to their working hours [chunk_1].
-  from leave_policy.md (chunk_1, score 0.76)
-  from remote_work.md (chunk_2, score 0.61)
+Q: How many paid leave days do I get?
+A: Every full-time employee gets 20 paid leave days per calendar year. Part-time employees get leave days in proportion to their working hours. [chunk_0, page 1]
+   from leave_policy.md (chunk_0)
+   from remote_work.md (chunk_2)
 
-$ python examples/persistent_rag.py add examples/sample_docs/remote_work.md
-Indexed 1 chunks from remote_work.md; the index now holds 3 chunks
+Q: Can I work from home on Fridays?
+A: According to [chunk_2], employees may work from home up to three days per week, after agreeing the days with their manager.
+   from remote_work.md (chunk_2)
+   from leave_policy.md (chunk_0)
 
-$ python examples/persistent_rag.py info
-3 chunks, built with {'embed_model': 'nomic-embed-text', 'dimensions': 768, 'chunker': 'WordChunker', 'next_chunk': 4}
+$ python examples/persistent_rag.py
+Using the saved index: 3 chunks, no indexing needed
+The index holds 3 chunks
 
-$ python examples/persistent_rag.py ask "Can I work from home on Fridays?"
-Answer: Based on the available documents, “Employees may work from home up to three days per week, after agreeing the days with their manager.” [chunk_3]
-  from remote_work.md (chunk_3, score 0.65)
-  from leave_policy.md (chunk_1, score 0.51)
+Q: How many paid leave days do I get?
+A: Every full-time employee gets 20 paid leave days per calendar year [chunk_0]. Part-time employees get leave days in proportion to their working hours [chunk_0].
+   from leave_policy.md (chunk_0)
+   from remote_work.md (chunk_3)
+
+Q: Can I work from home on Fridays?
+A: Based on the available documents, “Employees may work from home up to three days per week, after agreeing the days with their manager.” [chunk_3]
+   from remote_work.md (chunk_3)
+   from leave_policy.md (chunk_0)
 ```
 
-Adding `remote_work.md` again replaced its old chunk (`chunk_2`) instead of
-storing it twice: the index still holds 3 chunks, and the new chunk got the
-next free id, `chunk_3`. To use Chroma or Qdrant instead, change only
-`"vector_store"` in `SETTINGS`.
+The second run did not index the policies again. Step 3 added
+`remote_work.md` once more, so its old chunk (`chunk_2`) was replaced by
+`chunk_3`: the index still holds 3 chunks. To use Chroma or Qdrant, change
+only `"vector_store"`.
+
+### Built from the parts
+
+The same RAG with every class picked by hand, for when you want to swap one
+of them (see [Building blocks](building-blocks.md)).
+[`examples/persistent_rag_parts.py`](https://github.com/aion7891/rag-titan/blob/main/examples/persistent_rag_parts.py):
+
+```python
+"""
+The same saved-index RAG, built from its parts: you pick every class yourself.
+
+Before running (Ollama installed and running):
+    ollama pull gemma3:4b
+    ollama pull nomic-embed-text
+
+Run (from the repo root):
+    python examples/persistent_rag_parts.py
+"""
+
+from pathlib import Path
+
+from rag_titan import SimpleRAG
+from rag_titan.chunking import ParagraphChunker
+from rag_titan.embeddings import OllamaEmbedder
+from rag_titan.generation import GroundedGenerator
+from rag_titan.llm import OllamaLLM
+from rag_titan.pipelines import IndexingPipeline
+from rag_titan.retrieval import DenseRetriever
+from rag_titan.retrieval.rerankers import KeywordReranker
+from rag_titan.vector_stores import SQLiteStore
+
+DOCS = Path(__file__).parent / "sample_docs"
+
+# 1. The parts: the store is the only one that keeps anything between runs
+llm = OllamaLLM("gemma3:4b")
+embedder = OllamaEmbedder("nomic-embed-text")
+store = SQLiteStore("hr_index_parts.db")      # or ChromaStore(...) / QdrantStore(...)
+
+# 2. Indexing: load -> chunk -> embed -> store (first run only)
+if store.count() == 0:
+    pipeline = IndexingPipeline(ParagraphChunker(1000, 0), embedder, store)
+    chunk_count = pipeline.run(sorted(DOCS.glob("*.md")))
+    print(f"Indexed {chunk_count} chunks")
+else:
+    print(f"Using the saved index: {store.count()} chunks")
+
+# 3. Answering: retrieve -> rerank -> generate (the embedder must be the one that indexed)
+rag = SimpleRAG(DenseRetriever(embedder, store), KeywordReranker(), GroundedGenerator(llm))
+print(rag.answer("How many paid leave days do I get?"))
+```
+
+```text
+$ python examples/persistent_rag_parts.py
+Indexed 3 chunks
+Every full-time employee gets 20 paid leave days per calendar year [chunk_1]. Part-time employees get leave days in proportion to their working hours [chunk_1].
+
+$ python examples/persistent_rag_parts.py
+Using the saved index: 3 chunks
+Every full-time employee gets 20 paid leave days per calendar year. Part-time employees get leave days in proportion to their working hours. [chunk_1]
+```
 
 ## Add, replace and start over
 
