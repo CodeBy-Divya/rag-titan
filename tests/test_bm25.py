@@ -77,7 +77,8 @@ def test_an_exact_id_ranks_first_with_the_evidence_format(tmp_path):
 
     assert results[0]["source"] == "billing.md"
     assert results[0]["retriever"] == "bm25"
-    assert results[0]["score_trace"] == {"bm25": results[0]["score"]}
+    assert results[0]["score"] == 1.0                      # the best chunk, scaled 0-1
+    assert results[0]["score_trace"]["bm25"] > 1.0         # the raw BM25 score
     assert len(results) == 1                      # no other chunk has "inv" or "2041"
 
 

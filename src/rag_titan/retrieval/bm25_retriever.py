@@ -46,8 +46,9 @@ class BM25Retriever(BaseRetriever):
         Return the top_k chunks with the highest BM25 score, best first.
 
         Chunks without any word of the question are not returned, so there can
-        be fewer than top_k results. Each has "score", "retriever" and
-        "score_trace" (see BaseRetriever).
+        be fewer than top_k results. "score" is the BM25 score divided by the
+        best one for this question (the best chunk gets 1.0); the raw BM25
+        score is in "score_trace" (see BaseRetriever).
         """
         self._check_top_k(top_k)
         if not self.has_documents():
@@ -56,11 +57,14 @@ class BM25Retriever(BaseRetriever):
 
         chunks, index = self._index()
         wanted = top_k if self.dedupe_overlap is None else 2 * top_k
-        matches = [{**chunks[number], "score": score}
-                   for number, score in index.search(query, wanted)]
+        found = index.search(query, wanted)
+        best = found[0][1] if found else 1.0
+        matches = [{**chunks[number], "score": score / best, "bm25": score}
+                   for number, score in found]
         if self.dedupe_overlap is not None:
             matches = remove_duplicates(matches, self.dedupe_overlap)
-        return self._with_trace(matches[:top_k])
+        traces = [{"bm25": match.pop("bm25")} for match in matches[:top_k]]
+        return self._with_trace(matches[:top_k], traces)
 
     def _index(self):
         """Return (chunks, BM25Index), building them again when the store changed."""

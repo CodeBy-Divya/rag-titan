@@ -5,6 +5,7 @@ from rag_titan.retrieval.bm25 import BM25Index, tokenize
 from rag_titan.retrieval.bm25_retriever import BM25Retriever
 from rag_titan.retrieval.dedupe import overlap_fraction, remove_duplicates
 from rag_titan.retrieval.dense_retriever import DenseRetriever
+from rag_titan.retrieval.hybrid_retriever import HybridRetriever
 from rag_titan.retrieval.retriever import Retriever
 
 __all__ = [
@@ -12,6 +13,7 @@ __all__ = [
     "BM25Retriever",
     "BaseRetriever",
     "DenseRetriever",
+    "HybridRetriever",
     "Retriever",
     "overlap_fraction",
     "remove_duplicates",
