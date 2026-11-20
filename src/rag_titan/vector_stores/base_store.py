@@ -11,6 +11,10 @@ Run tests/store_contract.py against your store to check it.
 class BaseStore:
     """Saves chunks with their vectors and finds the most similar ones."""
 
+    # True for stores that keep the index after Python exits; evaluation then
+    # works on a temporary copy so it never replaces your saved index
+    persistent = False
+
     def add(self, chunks, vectors):
         """Save chunks together with their vectors (same order)."""
         raise NotImplementedError

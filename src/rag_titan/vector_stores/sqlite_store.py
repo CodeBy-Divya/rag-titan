@@ -38,6 +38,8 @@ class SQLiteStore(BaseStore):
         path: the database file, created (with its folder) when missing.
     """
 
+    persistent = True
+
     def __init__(self, path="rag_titan.db"):
         # imported here: the browser (Pyodide) has no sqlite3 unless it is loaded
         import sqlite3

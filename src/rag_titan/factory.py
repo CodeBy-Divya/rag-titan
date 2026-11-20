@@ -31,7 +31,7 @@ from rag_titan.rag_types.simple_rag import SimpleRAG
 from rag_titan.retrieval.dense_retriever import DenseRetriever
 from rag_titan.retrieval.rerankers.keyword_reranker import KeywordReranker
 from rag_titan.retrieval.rerankers.no_reranker import NoReranker
-from rag_titan.vector_stores.memory_store import MemoryStore
+from rag_titan.vector_stores.store_registry import VECTOR_STORES, build_store  # noqa: F401
 
 # every RAG type the package can build, used by build_rag() and the CLI
 RAG_TYPES = ["simple", "adaptive"]
@@ -113,16 +113,6 @@ def build_chunker(settings):
         return structure_aware[name](size, overlap)
 
     raise ValueError(f"Unknown chunker: {name}")
-
-
-def build_store(settings):
-    """Create the vector store named in settings["vector_store"]."""
-    name = settings["vector_store"]
-
-    if name == "memory":
-        return MemoryStore()
-
-    raise ValueError(f"Unknown vector store: {name}")
 
 
 def build_reranker(settings, llm=None):

@@ -71,15 +71,14 @@ def get_settings(overrides=None):
     Build the settings dictionary.
 
     Args:
-        overrides: optional dict of settings that win over the
-            environment, for example {"chunk_size": 200}.
+        overrides: optional dict of settings that win over the environment,
+            for example {"chunk_size": 200}.
 
     Returns:
         A dict with every setting the package uses.
     """
-    # read the .env file only when settings are requested, not on import
     if load_dotenv is not None:
-        load_dotenv()
+        load_dotenv()           # read .env only when settings are requested, not on import
 
     settings = {
         # LLM used by RAG
@@ -104,6 +103,7 @@ def get_settings(overrides=None):
 
         # Storage, retrieval and generation
         "vector_store": os.getenv("VECTOR_STORE", "memory"),
+        "vector_store_path": os.getenv("VECTOR_STORE_PATH", "rag_titan.db"),   # sqlite
         # drop a search result that overlaps a better one by this share ("off" keeps all)
         "dedupe_overlap": _get_overlap("DEDUPE_OVERLAP", 0.5),
         "reranker": os.getenv("RERANKER", "keyword"),
