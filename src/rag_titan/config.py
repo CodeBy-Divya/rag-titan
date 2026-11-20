@@ -122,8 +122,9 @@ def get_settings(overrides=None):
 
 
 def _store_settings():
-    """Read the vector store settings from the environment."""
+    """Read the vector store and retrieval settings from the environment."""
     return {
+        "retriever": os.getenv("RETRIEVER", "dense"),         # dense, bm25 or hybrid
         "vector_store": os.getenv("VECTOR_STORE", "memory"),
         "vector_store_path": os.getenv("VECTOR_STORE_PATH"),  # None: the store's default
         "vector_store_url": os.getenv("VECTOR_STORE_URL"),    # chroma/qdrant server

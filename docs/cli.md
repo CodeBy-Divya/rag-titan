@@ -26,6 +26,15 @@ keeps what is indexed and replaces files indexed before. `--store-path` picks
 another file or folder. With `VECTOR_STORE=sqlite` in `.env`, leave out
 `--vector-store`. Commands with `--files` index those files first, as before.
 
+## Pick the retriever
+
+```bash
+rag-titan ask --files handbook.pdf --question "What does error E-4022 mean?" --retriever hybrid
+```
+
+`--retriever` (`dense`, `bm25` or `hybrid`) works with `ask`, `chat` and, with
+several values, `evaluate`. See [Retrieval](retrieval.md).
+
 ## Chat in a loop
 
 ```bash
@@ -47,11 +56,11 @@ scores, evidence checks, rewrites) before the answer.
 
 ```bash
 rag-titan evaluate --files docs/*.md --questions questions.json \
-    --rag-type simple adaptive --chunker word paragraph
+    --rag-type simple adaptive --chunker word paragraph --retriever dense hybrid
 ```
 
-Runs every RAG type with every chunker on your test questions and prints a
-report, then the questions that missed evidence or got no answer. Add
+Runs every RAG type with every chunker and retriever on your test questions and
+prints a report, then the questions that missed evidence or got no answer. Add
 `--retrieval-only` to score search alone (fast, no LLM). See
 [Evaluating RAG](evaluation.md).
 

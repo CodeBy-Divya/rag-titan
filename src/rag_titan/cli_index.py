@@ -32,8 +32,10 @@ def add_index_command(commands):
 
 
 def store_settings(args):
-    """The settings the store options change."""
+    """The settings the store (and --retriever) options change."""
     settings = {}
+    if getattr(args, "retriever", None):          # ask and chat only
+        settings["retriever"] = args.retriever
     if args.vector_store:
         settings["vector_store"] = args.vector_store
     if args.store_path:

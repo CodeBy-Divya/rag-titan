@@ -101,8 +101,7 @@ class AdaptiveRAG(BaseRAG):
         for attempt in range(1, self.max_attempts + 1):
             logger.info("Search attempt %d: '%s'", attempt, search_query)
 
-            matches = trace.record("retrieve", self.retriever.retrieve,
-                                   query=search_query, top_k=top_k)
+            matches = trace.search(self.retriever, query=search_query, top_k=top_k)
             chunks = trace.record("rerank", self.reranker.rerank,
                                   query=query, matches=matches, top_n=top_n)
             enough = trace.record("check", self.evidence_checker.has_enough,

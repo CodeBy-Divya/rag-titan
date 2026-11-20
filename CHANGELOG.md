@@ -6,6 +6,44 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-21
+
+### Added
+- **Three retrievers, one setting**: `RETRIEVER=dense` (meaning, the default),
+  `bm25` (exact words) or `hybrid` (both, fused with Reciprocal Rank Fusion).
+  Every RAG type works with all of them. Guide with a real comparison:
+  [Retrieval](https://aion7891.github.io/rag-titan/retrieval/). On its help-desk
+  example the right file came first for 6 of 6 questions with hybrid, 5 with
+  dense and 3 with BM25.
+- `BM25Retriever`, `BM25Index`, `tokenize`, `STOPWORDS` and `HybridRetriever` in
+  `rag_titan.retrieval`. The keyword index is built from the vector store's chunks
+  and rebuilt by itself when the store changes, also for saved stores.
+  `BaseStore.all_chunks()` on every store.
+- `MMRReranker` (`RERANKER=mmr`): relevant chunks that do not repeat each other.
+- `rag-titan evaluate --retriever dense bm25 hybrid` (also with `--retrieval-only`),
+  and `--retriever` on `ask` and `chat`. Setups that only differ in retriever or
+  reranker share one index.
+- `RAGTitan.count()`: how many chunks are indexed.
+- RAG playground: a Retriever choice; hybrid search runs as three steps on the
+  flow diagram (*Vector search → Keyword search → Fuse ranks (RRF)*), and the fuse
+  step shows each chunk's rank in both searches. Recorded again with `gemma3:4b`.
+- `rag.flow()` draws any RAG type with its retriever, and `Trace.search()` records
+  a retriever's own steps, so new RAG types get this for free.
+- `examples/compare_retrievers.py` with `examples/retrieval_docs/`.
+
+### Changed
+- Every retriever's `score` is a relevance from 0 to 1, so rerankers work the same
+  with all of them. Dense scores (cosine) are unchanged; BM25 is divided by the best
+  score for the question and hybrid by the best possible RRF. Raw scores are in
+  `score_trace`.
+- Flow diagrams name the search step after the retriever ("Vector search" instead
+  of "Retrieve"); the step id in traces stays `retrieve`.
+- `Playground.info()["flows"]` is keyed by RAG type, then retriever;
+  `Playground.run()` / `evaluate()` and `LivePlayground.run()` take a retriever.
+- `build_reranker()` and `build_retriever()` live in
+  `rag_titan.retrieval.retriever_registry` (`from rag_titan.factory import
+  build_reranker` still works); `rag-titan evaluate` moved to `cli_evaluate.py`.
+
 ## [0.10.0] - 2026-11-21
 
 ### Added

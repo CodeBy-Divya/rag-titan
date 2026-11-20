@@ -104,6 +104,11 @@ class SQLiteStore(BaseStore):
             cursor = self.connection.execute("DELETE FROM chunks WHERE source = ?", (source,))
         return cursor.rowcount
 
+    def all_chunks(self):
+        """Return every chunk without its vector, in the order they were added."""
+        rows = self.connection.execute("SELECT chunk FROM chunks ORDER BY rowid").fetchall()
+        return [json.loads(row[0]) for row in rows]
+
     def get_info(self):
         """Return how the index was built, or None for an empty store."""
         row = self.connection.execute("SELECT value FROM info WHERE key = 'index'").fetchone()

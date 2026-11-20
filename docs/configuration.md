@@ -34,7 +34,8 @@ cp .env.example .env
 | `COLLECTION`      | `collection`      | `rag_titan`              | Chroma / Qdrant collection, one per index      |
 | `QDRANT_API_KEY`  | –                 | –                        | Qdrant Cloud key                               |
 | `DEDUPE_OVERLAP`  | `dedupe_overlap`  | `0.5`                    | Drop near-copy search results; `off` keeps all |
-| `RERANKER`        | `reranker`        | `keyword`                | `keyword` or `none`                            |
+| `RETRIEVER`       | `retriever`       | `dense`                  | `dense`, `bm25` or `hybrid`: see [Retrieval](retrieval.md) |
+| `RERANKER`        | `reranker`        | `keyword`                | `keyword`, `none` or `mmr` (relevant, not repetitive) |
 | `GENERATOR`       | `generator`       | `grounded`               | How answers are written                        |
 | `LOG_LEVEL`       | –                 | `INFO`                   | Used by `setup_logging()`                      |
 

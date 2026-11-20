@@ -1,0 +1,14 @@
+[
+  {"id": "code_1", "question": "What does error E-4022 mean?",
+   "required_evidence_ids": ["account_errors.md"]},
+  {"id": "code_2", "question": "How do I fix E-4012?",
+   "required_evidence_ids": ["vpn_errors.md"]},
+  {"id": "code_3", "question": "E-4013 keeps showing up, what now?",
+   "required_evidence_ids": ["vpn_errors.md"]},
+  {"id": "meaning_1", "question": "Somebody took my notebook from the train. Who do I tell?",
+   "required_evidence_ids": ["lost_device.md"]},
+  {"id": "meaning_2", "question": "What gear does a newcomer receive?",
+   "required_evidence_ids": ["new_starters.md"]},
+  {"id": "meaning_3", "question": "How long until my documents vanish from the copier?",
+   "required_evidence_ids": ["printing.md"]}
+]

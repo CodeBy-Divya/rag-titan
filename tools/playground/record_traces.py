@@ -2,7 +2,7 @@
 Record the browser playground's examples with real models, or check a recording.
 
 It indexes the sample policies in examples/sample_docs/ with every preset chunking,
-runs every RAG type on every question in examples/questions.json, and saves the
+runs every RAG type with every retriever on every question in examples/questions.json, and saves the
 model's replies, the embedding vectors and the expected runs in
 docs/assets/playground/presets.json.
 
@@ -44,7 +44,8 @@ def record(model, embed_model):
     # compact JSON: the file is downloaded by every playground visitor
     OUT.write_text(json.dumps(presets, ensure_ascii=False, sort_keys=True,
                               separators=(",", ":")), encoding="utf-8")
-    runs = sum(len(r) for by_type in presets["expected"].values() for r in by_type.values())
+    runs = sum(len(runs) for by_retriever in presets["expected"].values()
+               for by_type in by_retriever.values() for runs in by_type.values())
     print(f"Recorded {runs} runs, {len(presets['replies'])} replies and "
           f"{len(presets['vectors'])} vectors -> {OUT.relative_to(ROOT)} "
           f"({OUT.stat().st_size / 1024:.0f} KB)")

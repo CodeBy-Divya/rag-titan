@@ -50,7 +50,9 @@ const RagCards = (() => {
       label: title,
       onSelect: (id, visits) => details.replaceChildren(RagSteps.details(label(id), visits)),
     });
-    return { box, play: () => diagram.play(run.steps, 650).then(() => diagram.select("retrieve")) };
+    // after the run, open the search step: the fused ranks for hybrid, else the one search
+    const search = flow.nodes.some((node) => node.id === "fuse") ? "fuse" : "retrieve";
+    return { box, play: () => diagram.play(run.steps, 650).then(() => diagram.select(search)) };
   }
 
   function reportTable(report) {

@@ -201,7 +201,11 @@ class TitleRetriever(BaseRetriever):
 ```
 
 Any `BaseRetriever` works in every RAG type, and you can measure it against the
-others with [`compare_retrievers()`](evaluation.md).
+others with [`compare_retrievers()`](evaluation.md). Give `score` a 0-to-1
+relevance (keep the raw score in `score_trace`) so rerankers treat it like the
+others, and set `label = "Title search"` to name its step in the flow diagram.
+A retriever made of several steps can draw them: see `SEARCH_FLOW` and
+`retrieve_with_steps()` in `HybridRetriever`.
 
 ## Adding a new RAG type
 

@@ -72,16 +72,17 @@ def test_a_recording_replays_the_same_even_with_a_moody_model():
     presets = record_presets(DOCUMENTS, QUESTIONS, PRESET_CHUNKING, MoodyLLM(), FakeEmbedder())
 
     assert set(presets["expected"]) == set(PRESET_CHUNKING)
-    assert set(presets["expected"]["word"]) == {"simple", "adaptive"}
+    assert set(presets["expected"]["word"]) == {"dense", "bm25", "hybrid"}
+    assert set(presets["expected"]["word"]["hybrid"]) == {"simple", "adaptive"}
     assert check_presets(json.loads(json.dumps(presets))) == []   # survives a JSON round trip
 
 
 def test_check_finds_a_changed_run():
     presets = record_presets(DOCUMENTS, QUESTIONS, PRESET_CHUNKING, MoodyLLM(), FakeEmbedder())
-    presets["expected"]["word"]["simple"]["q1"]["answer"] = "something else"
+    presets["expected"]["word"]["hybrid"]["simple"]["q1"]["answer"] = "something else"
 
     problems = check_presets(presets)
-    assert len(problems) == 1 and problems[0].startswith("word / simple / q1")
+    assert len(problems) == 1 and problems[0].startswith("word / hybrid / simple / q1")
 
 
 @pytest.mark.skipif(not PRESETS.exists(), reason="no recorded presets yet")
@@ -101,16 +102,26 @@ def test_playground_session_gives_the_page_what_it_needs():
     info = playground.info()
 
     assert info["rag_types"] == ["simple", "adaptive"]
-    assert info["flows"]["adaptive"]["nodes"][0]["id"] == "route"
+    assert info["retrievers"] == ["dense", "bm25", "hybrid"]
+    assert info["flows"]["adaptive"]["dense"]["nodes"][0]["id"] == "route"
+    hybrid_ids = [node["id"] for node in info["flows"]["simple"]["hybrid"]["nodes"]]
+    assert hybrid_ids == ["vector_search", "keyword_search", "fuse", "rerank", "generate"]
     assert set(info["chunkings"]) == set(PRESET_CHUNKING)
 
     run = playground.run("paragraph", "simple", "q_001")
     assert [step["step"] for step in run["steps"]] == ["retrieve", "rerank", "generate"]
     assert run["answered"] and run["recall"] == 1.0
     assert json.loads(json.dumps(run)) == run          # plain JSON for the browser
+    hybrid = playground.run("paragraph", "simple", "q_001", retriever="hybrid")
+    assert [step["step"] for step in hybrid["steps"]][:3] == ["vector_search", "keyword_search",
+                                                              "fuse"]
+    assert "rrf" in hybrid["steps"][2]["output"][0]["score_trace"]
 
     report = playground.evaluate(["word"], ["simple", "adaptive"])
     assert [r["name"] for r in report["results"]] == ["simple + word", "adaptive + word"]
+    both = playground.evaluate(["word"], ["simple"], ["dense", "hybrid"])
+    assert [r["name"] for r in both["results"]] == ["simple + word + dense",
+                                                    "simple + word + hybrid"]
     assert "steps" not in report["results"][0]["rows"][0]
     assert report["report"].startswith("End-to-end report: 6 questions")
 
@@ -122,3 +133,5 @@ def test_playground_session_bad_names():
         playground.run("lines", "simple", "q1")
     with pytest.raises(ValueError, match="Unknown question"):
         playground.run("word", "simple", "q9")
+    with pytest.raises(ValueError, match="Unknown retriever"):
+        playground.run("word", "simple", "q1", retriever="sparse")

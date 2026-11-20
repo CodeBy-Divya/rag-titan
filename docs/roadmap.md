@@ -9,7 +9,6 @@
 - [ ] Corrective RAG (CRAG): grade chunks, fall back to web search
 - [ ] Multi-query RAG: ask several versions of the question
 - [ ] HyDE: search with a hypothetical answer
-- [ ] Hybrid RAG: keyword (BM25) + vector search
 - [ ] Self-RAG: the model critiques its own answer
 - [ ] Parent-document RAG: search small chunks, answer with big ones
 - [ ] Graph RAG: use a knowledge graph
@@ -22,6 +21,8 @@
 - [ ] Embedders: OpenAI, sentence-transformers
 - [x] Saved vector stores: SQLite (built in), Chroma, Qdrant; `rag-titan index`, add/replace files, embedder check, available since 0.10.0
 - [ ] Vector stores: FAISS, LanceDB, pgvector, Pinecone, then Weaviate, Milvus, Elasticsearch, Redis, MongoDB
+- [x] Retrievers: BM25 and hybrid (RRF) next to dense, `RETRIEVER` setting, `evaluate --retriever`, available since 0.11.0
+- [x] Rerankers: MMR (`RERANKER=mmr`), available since 0.11.0
 - [ ] Rerankers: cross-encoder, LLM reranker
 - [x] Loaders: TXT and Markdown (`TextLoader`), available since 0.3.0
 - [ ] Loaders: HTML, CSV

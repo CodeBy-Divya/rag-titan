@@ -28,9 +28,12 @@ from rag_titan.llm.ollama_llm import OllamaLLM
 from rag_titan.pipelines.indexing_pipeline import IndexingPipeline
 from rag_titan.rag_types.adaptive.adaptive_rag import AdaptiveRAG
 from rag_titan.rag_types.simple_rag import SimpleRAG
-from rag_titan.retrieval.dense_retriever import DenseRetriever
-from rag_titan.retrieval.rerankers.keyword_reranker import KeywordReranker
-from rag_titan.retrieval.rerankers.no_reranker import NoReranker
+from rag_titan.retrieval.retriever_registry import (  # noqa: F401  (build_reranker: old import path)
+    RERANKERS,
+    RETRIEVERS,
+    build_reranker,
+    build_retriever,
+)
 from rag_titan.vector_stores.store_registry import VECTOR_STORES, build_store  # noqa: F401
 
 # every RAG type the package can build, used by build_rag() and the CLI
@@ -115,22 +118,6 @@ def build_chunker(settings):
     raise ValueError(f"Unknown chunker: {name}")
 
 
-def build_reranker(settings, llm=None):
-    """
-    Create the reranker named in settings["reranker"].
-
-    `llm` is not used yet. It is here for future LLM-based rerankers.
-    """
-    name = settings["reranker"]
-
-    if name == "keyword":
-        return KeywordReranker()
-    if name == "none":
-        return NoReranker()
-
-    raise ValueError(f"Unknown reranker: {name}")
-
-
 def build_generator(settings, llm):
     """Create the answer generator named in settings["generator"]."""
     name = settings["generator"]
@@ -156,8 +143,8 @@ def build_rag_parts(settings):
     return {
         "llm": llm,
         "pipeline": IndexingPipeline(build_chunker(settings), embedder, store),
-        "retriever": DenseRetriever(embedder, store, dedupe_overlap=settings["dedupe_overlap"]),
-        "reranker": build_reranker(settings, llm),
+        "retriever": build_retriever(settings, embedder, store),
+        "reranker": build_reranker(settings, llm, embedder),
         "generator": build_generator(settings, llm),
     }
 

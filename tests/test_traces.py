@@ -23,8 +23,9 @@ def names(result):
 
 def assert_follows_flow(rag, result):
     """Every step is a FLOW node and two steps in a row are joined by an edge."""
-    node_ids = {node["id"] for node in rag.FLOW["nodes"]}
-    edges = {tuple(edge) for edge in rag.FLOW["edges"]}
+    flow = rag.flow()
+    node_ids = {node["id"] for node in flow["nodes"]}
+    edges = {tuple(edge) for edge in flow["edges"]}
     steps = names(result)
 
     assert set(steps) <= node_ids
@@ -34,7 +35,7 @@ def assert_follows_flow(rag, result):
 
 @pytest.mark.parametrize("rag_type", RAG_TYPES)
 def test_every_rag_type_has_a_valid_flow(parts, rag_type):
-    flow = build_rag(rag_type, parts).FLOW
+    flow = build_rag(rag_type, parts).flow()
     ids = [node["id"] for node in flow["nodes"]]
 
     assert ids, f"{rag_type} has no FLOW: the playground cannot draw it"

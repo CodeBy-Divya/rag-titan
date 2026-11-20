@@ -59,6 +59,10 @@ class RAGTitan:
         """
         return self.pipeline.run(file_paths, reset=reset)
 
+    def count(self):
+        """Return how many chunks are indexed (also in a saved store from an earlier run)."""
+        return self.pipeline.store.count()
+
     def ask(self, question):
         """
         Answer a question using the indexed files.

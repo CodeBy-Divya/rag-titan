@@ -19,8 +19,8 @@ Answering:  Retriever -> Reranker -> Generator  (each uses the LLM / Embedder)
 | Chunker   | `BaseChunker`   | 8 chunkers, see [Chunking methods](chunking.md)   | `chunking/`            |
 | Embedder  | `BaseEmbedder`  | `OllamaEmbedder`, `HashEmbedder`, `FunctionEmbedder`, `ReplayEmbedder` | `embeddings/` |
 | Store     | `BaseStore`     | `MemoryStore`, `SQLiteStore`, `ChromaStore`, `QdrantStore` ([Vector stores](vector-stores.md)) | `vector_stores/` |
-| Retriever | `BaseRetriever` | `DenseRetriever` (old name: `Retriever`)          | `retrieval/`           |
-| Reranker  | `BaseReranker`  | `KeywordReranker`, `NoReranker`                   | `retrieval/rerankers/` |
+| Retriever | `BaseRetriever` | `DenseRetriever`, `BM25Retriever`, `HybridRetriever` ([Retrieval](retrieval.md)) | `retrieval/` |
+| Reranker  | `BaseReranker`  | `KeywordReranker`, `MMRReranker`, `NoReranker`    | `retrieval/rerankers/` |
 | Generator | `BaseGenerator` | `GroundedGenerator`                               | `generation/`          |
 
 ## Models without a server
@@ -57,15 +57,15 @@ See [what every chunker returns](chunking.md#what-every-chunker-returns).
 ```python
 {"id": "chunk_0", "source": "handbook.pdf", "text": "...",
  "start_offset": 0, "end_offset": 912, "page_numbers": [1],
- "score": 0.82,                                  # higher is better
+ "score": 0.82,                                  # relevance from 0 to 1
  "retriever": "dense",                           # which retriever found it
  "score_trace": {"dense": 0.82},                 # how the score was made
  "rerank_score": 0.97}                           # added by the reranker
 ```
 
 `score_trace` shows where a score comes from. With one retriever it holds one
-number; a hybrid retriever (planned) will show each part, for example
-`{"bm25": 7.1, "dense": 0.82, "rrf": 0.032}`. `id` and `source` are the chunk
+number; the hybrid retriever shows each part, for example
+`{"rrf": 0.0325, "dense": 0.651, "dense_rank": 2, "bm25": 3.616, "bm25_rank": 1}`. `id` and `source` are the chunk
 and source ids of the evidence.
 
 To check how well retrieval and RAG types work on your questions, see

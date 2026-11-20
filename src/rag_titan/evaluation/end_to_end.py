@@ -22,8 +22,11 @@ from rag_titan.config import get_settings
 from rag_titan.evaluation.benchmark import format_table, summarize_rows
 from rag_titan.evaluation.metrics import ndcg_at_k, recall_at_k, reciprocal_rank
 from rag_titan.evaluation.questions import as_questions
-from rag_titan.factory import build_rag, build_rag_parts
+from rag_titan.factory import build_rag, build_rag_parts, build_reranker, build_retriever
 from rag_titan.prompts import NO_ANSWER
+
+# settings that only change how an index is searched, not what is in it
+SEARCH_ONLY = ("retriever", "reranker")
 
 # replies that mean "no answer was given"
 NOT_ANSWERED = {NO_ANSWER, "Please enter a question.", "Please index your documents first."}
@@ -82,8 +85,8 @@ def compare_setups(files, questions, setups):
         A list with one evaluate_rag() result per setup, in order; each also
         has the setup's "rag_type" and "settings".
 
-    Setups with the same settings share one index, so comparing RAG types
-    on the same ingestion embeds the files only once.
+    Setups with the same ingestion settings share one index, so comparing RAG
+    types, retrievers or rerankers on the same chunks embeds the files only once.
     """
     if not isinstance(files, list) or not files:
         raise ValueError("files must be a non-empty list of file paths")
@@ -142,14 +145,19 @@ def _indexed_parts(files, overrides, indexes):
     # always a temporary in-memory index: comparing setups must never replace
     # (or mix several setups into) an index saved with VECTOR_STORE=sqlite
     settings = get_settings({**overrides, "vector_store": "memory"})
-    key = json.dumps(settings, sort_keys=True, default=str)
+    ingestion = {key: value for key, value in settings.items() if key not in SEARCH_ONLY}
+    key = json.dumps(ingestion, sort_keys=True, default=str)
 
     if key not in indexes:
         parts = build_rag_parts(settings)
         parts["pipeline"].run(files)
         indexes[key] = parts
 
-    return indexes[key]
+    # same chunks, but this setup's own way of searching and reranking them
+    pipeline = indexes[key]["pipeline"]
+    return {**indexes[key],
+            "retriever": build_retriever(settings, pipeline.embedder, pipeline.store),
+            "reranker": build_reranker(settings, indexes[key]["llm"], pipeline.embedder)}
 
 
 def _check_setups(setups):

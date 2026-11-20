@@ -14,6 +14,7 @@ from rag_titan.playground.presets import (
     record_presets,
     replay_parts,
     summarize_run,
+    with_retriever,
 )
 from rag_titan.playground.session import Playground
 
@@ -29,4 +30,5 @@ __all__ = [
     "record_presets",
     "replay_parts",
     "summarize_run",
+    "with_retriever",
 ]

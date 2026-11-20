@@ -21,10 +21,21 @@ const RagSteps = (() => {
     return flat.length > LONG ? `${flat.slice(0, LONG - 1)}…` : flat;
   }
 
+  // How a fused (hybrid) score was made: "vector #2 · keyword #1 · rrf 0.0325".
+  function ranks(trace) {
+    if (!trace || !("rrf" in trace)) return "";
+    const parts = [];
+    if ("dense_rank" in trace) parts.push(`vector #${trace.dense_rank}`);
+    if ("bm25_rank" in trace) parts.push(`keyword #${trace.bm25_rank}`);
+    parts.push(`rrf ${trace.rrf.toFixed(4)}`);
+    return `  [${parts.join(" · ")}]`;
+  }
+
   function chunkLine(chunk) {
     const score = "rerank_score" in chunk ? `rerank ${chunk.rerank_score.toFixed(3)}`
       : "score" in chunk ? chunk.score.toFixed(3) : "";
-    return `${chunk.id} ${chunk.source || ""} ${score ? `(${score})` : ""}\n   “${short(chunk.text || "")}”`;
+    return `${chunk.id} ${chunk.source || ""} ${score ? `(${score})` : ""}${ranks(chunk.score_trace)}`
+      + `\n   “${short(chunk.text || "")}”`;
   }
 
   // One value: chunks one per line, yes/no for booleans, quoted text otherwise.

@@ -155,18 +155,17 @@ rag = RAGTitan(
 )
 
 # 2. Index the documents, only when the saved index is still empty
-store = rag.pipeline.store
-if store.count() == 0:
+if rag.count() == 0:
     files = [DOCS / "leave_policy.md", DOCS / "expenses.md"]
     print(f"Indexing {len(files)} files...")
     rag.index(files)
 else:
-    print(f"Using the saved index: {store.count()} chunks, no indexing needed")
+    print(f"Using the saved index: {rag.count()} chunks, no indexing needed")
 
 # 3. Add a file later. It runs on every run here, to show that a file indexed
 #    before is replaced (new chunk ids), not stored twice
 rag.index([DOCS / "remote_work.md"], reset=False)
-print(f"The index holds {store.count()} chunks")
+print(f"The index holds {rag.count()} chunks")
 
 # 4. Ask questions
 for question in ["How many paid leave days do I get?", "Can I work from home on Fridays?"]:

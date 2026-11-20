@@ -76,6 +76,14 @@ class StoreContract:
         store.clear()
         assert store.count() == 0 and store.search(QUERY) == [] and store.get_info() is None
 
+    def test_all_chunks_lists_every_chunk_without_vectors(self, store):
+        chunks = sorted(store.all_chunks(), key=lambda c: c["id"])
+
+        assert [c["id"] for c in chunks] == ["chunk_0", "chunk_1", "chunk_2"]
+        assert chunks[1] == chunk(1, "leave.md")           # every key back, no vector
+        store.delete_source("leave.md")
+        assert [c["id"] for c in store.all_chunks()] == ["chunk_0"]
+
     def test_info_is_saved(self, store):
         info = {"embed_model": "nomic-embed-text", "dimensions": 4,
                 "chunker": "WordChunker", "next_chunk": 3}

@@ -7,6 +7,8 @@ A store that saves this info (see BaseStore.get_info) lets rag-titan say so
 clearly instead of returning wrong chunks.
 """
 
+import uuid
+
 
 def build_info(embedder, chunker, dimensions, next_chunk):
     """
@@ -19,13 +21,16 @@ def build_info(embedder, chunker, dimensions, next_chunk):
         next_chunk: the number the next chunk id will get ("chunk_<n>").
 
     Returns:
-        A dict of plain values that every store can save.
+        A dict of plain values that every store can save. "revision" is new
+        on every indexing run, so a keyword index built from the store knows
+        when to build itself again.
     """
     return {
         "embed_model": str(embedder.model),
         "dimensions": int(dimensions),
         "chunker": type(chunker).__name__,
         "next_chunk": int(next_chunk),
+        "revision": uuid.uuid4().hex[:12],
     }
 
 
