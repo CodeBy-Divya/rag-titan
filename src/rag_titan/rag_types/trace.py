@@ -37,6 +37,18 @@ class Trace:
         self.add(step, inputs, output, ms)
         return output
 
+    def search(self, retriever, query, top_k):
+        """
+        Search with a retriever and save it: one "retrieve" step, or the
+        retriever's own steps when it has them (hybrid: vector_search,
+        keyword_search, fuse). Returns the chunks found.
+        """
+        if hasattr(retriever, "retrieve_with_steps"):
+            matches, steps = retriever.retrieve_with_steps(query, top_k)
+            self.steps.extend(steps)
+            return matches
+        return self.record("retrieve", retriever.retrieve, query=query, top_k=top_k)
+
     def add(self, step, inputs, output, ms=0.0):
         """Save a step that was not made by calling a function (e.g. giving up)."""
         self.steps.append({"step": step, "input": inputs, "output": output, "ms": round(ms, 3)})

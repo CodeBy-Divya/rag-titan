@@ -16,7 +16,7 @@ from rag_titan.embeddings.function_embedder import FunctionEmbedder
 from rag_titan.evaluation.end_to_end import NOT_ANSWERED, evaluate_rag
 from rag_titan.factory import build_rag
 from rag_titan.llm.function_llm import FunctionLLM
-from rag_titan.playground.presets import build_parts, index_documents
+from rag_titan.playground.presets import build_parts, index_documents, with_retriever
 
 
 class LivePlayground:
@@ -37,9 +37,10 @@ class LivePlayground:
         self.embedder = FunctionEmbedder(embed, model=embed_model)
         self.parts = {}   # one index per (chunking, documents), embedded once
 
-    def run(self, chunking, rag_type, question, documents=None):
+    def run(self, chunking, rag_type, question, documents=None, retriever="dense"):
         """
-        Answer any question, on the sample documents or on `documents`.
+        Answer any question, on the sample documents or on `documents`, with
+        the dense, bm25 or hybrid retriever.
 
         Returns:
             Like Playground.run(). "recall" and "ndcg" are None unless the
@@ -48,7 +49,7 @@ class LivePlayground:
         if not isinstance(question, str) or not question.strip():
             raise ValueError("Please enter a question")
 
-        rag = build_rag(rag_type, self._parts(chunking, documents))
+        rag = build_rag(rag_type, with_retriever(self._parts(chunking, documents), retriever))
         preset = None if documents else self._preset_question(question)
         if preset:
             row = evaluate_rag(rag, [preset])["rows"][0]

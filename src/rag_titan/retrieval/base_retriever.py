@@ -24,6 +24,7 @@ class BaseRetriever:
     """
 
     name = "base"
+    label = "Retrieve"          # the search node's name in the flow diagram
 
     def retrieve(self, query, top_k=5):
         """Return the top_k best chunks, best first."""

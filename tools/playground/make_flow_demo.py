@@ -74,7 +74,7 @@ def main(out):
     for title, chunking, rag_type, question_id in RUNS:
         rag = build_rag(rag_type, replay_parts(presets, chunking))
         result = rag.run(questions[question_id])
-        flows[rag_type] = rag.FLOW
+        flows[rag_type] = rag.flow()
         runs.append({"title": title, "rag_type": rag_type, "question": questions[question_id],
                      "answer": result["answer"], "steps": result["steps"]})
 

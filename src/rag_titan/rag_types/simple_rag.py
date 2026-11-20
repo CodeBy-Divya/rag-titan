@@ -49,7 +49,7 @@ class SimpleRAG(BaseRAG):
         if not self.retriever.has_documents():
             return trace.result("Please index your documents first.")
 
-        matches = trace.record("retrieve", self.retriever.retrieve, query=query, top_k=self.top_k)
+        matches = trace.search(self.retriever, query=query, top_k=self.top_k)
         best_chunks = trace.record(
             "rerank", self.reranker.rerank, query=query, matches=matches, top_n=self.top_n
         )

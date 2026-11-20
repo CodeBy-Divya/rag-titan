@@ -38,7 +38,9 @@ def build_retriever(settings, embedder, store):
     if name == "bm25":
         return BM25Retriever(store, dedupe_overlap=dedupe)
     if name == "hybrid":
-        return HybridRetriever(dense, BM25Retriever(store, dedupe_overlap=dedupe))
+        # each search keeps near-copies; hybrid removes them once, after fusing
+        return HybridRetriever(DenseRetriever(embedder, store, dedupe_overlap=None),
+                               BM25Retriever(store, dedupe_overlap=None), dedupe_overlap=dedupe)
 
     raise ValueError(f"Unknown retriever: {settings['retriever']!r}. "
                      f"Use one of: {', '.join(RETRIEVERS)}")

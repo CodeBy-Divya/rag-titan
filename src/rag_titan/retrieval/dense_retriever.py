@@ -24,6 +24,7 @@ class DenseRetriever(BaseRetriever):
     """
 
     name = "dense"
+    label = "Vector search"
 
     def __init__(self, embedder, store, dedupe_overlap=0.5):
         if dedupe_overlap is not None and not 0 < dedupe_overlap <= 1:

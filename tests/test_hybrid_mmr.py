@@ -127,3 +127,23 @@ def test_mmr_embeds_each_text_once_and_checks_lambda():
     for bad in (-0.1, 1.5, "0.7"):
         with pytest.raises(ValueError, match="lambda_"):
             MMRReranker(embedder, lambda_=bad)
+
+
+def chunk_at(chunk_id, start, score):
+    return {"id": chunk_id, "source": "expenses.md", "text": chunk_id, "start_offset": start,
+            "end_offset": start + 100, "score": score, "score_trace": {}}
+
+
+def test_near_copies_are_removed_after_fusing_not_before():
+    """Each search ranks a different copy of the same passage first (overlapping
+    word chunks). The passage must still win, once, over a chunk both rank lower."""
+    copy_a, copy_b = chunk_at("chunk_1", 0, 0.9), chunk_at("chunk_2", 50, 0.9)  # 50% overlap
+    middling = chunk_at("chunk_8", 500, 0.5)
+    retriever = HybridRetriever(None, None, dedupe_overlap=0.5)
+
+    picked = retriever.fuse_top(dense=[copy_b, copy_a, middling],
+                                keyword=[copy_a, copy_b, middling], top_k=2)
+
+    assert [c["id"] for c in picked] == ["chunk_2", "chunk_8"]     # one copy, then the rest
+    assert picked[0]["score_trace"]["dense_rank"] == 1
+    assert picked[0]["score_trace"]["bm25_rank"] == 2               # both searches voted for it

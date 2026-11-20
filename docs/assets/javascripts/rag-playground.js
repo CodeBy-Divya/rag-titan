@@ -1,4 +1,4 @@
-// RAG playground (docs/rag-playground.md): pick chunkings, RAG types and a question, then
+// RAG playground (docs/rag-playground.md): pick chunkings, retrievers, RAG types and a question, then
 // watch each setup run on its own live flow diagram. Python runs in rag-worker.js;
 // the cards and the report are drawn by rag-cards.js.
 
@@ -75,7 +75,10 @@
     const chunkings = choices("Ingestion (chunker)", Object.keys(info.chunkings), (name) => {
       const s = info.chunkings[name];
       return ` ${s.chunk_size} ${name === "word" ? "words" : "characters"}, overlap ${s.chunk_overlap}`;
-    }, ["word", "paragraph"]);
+    }, ["paragraph"]);
+    const about = { dense: " meaning (vectors)", bm25: " exact words", hybrid: " both, fused (RRF)" };
+    const retrievers = choices("Retriever", info.retrievers, (name) => about[name] || "",
+                               ["dense", "hybrid"]);
     const ragTypes = choices("RAG type", info.rag_types, () => "", info.rag_types);
     const runButton = el("button", "md-button md-button--primary", "Run");
     const evalButton = el("button", "md-button", "Evaluate all questions");
@@ -90,21 +93,22 @@
         ? "Live: the real rag-titan code in your browser, asking your own Ollama." : ready;
     };
     runButton.onclick = () => runAll(info, mode.value, live, question.value, chunkings.picked(),
-                                     ragTypes.picked(), results);
+                                     retrievers.picked(), ragTypes.picked(), results);
     evalButton.onclick = async () => {
       results.replaceChildren(el("p", "rp-status", "Running every question on every setup…"));
-      results.replaceChildren(...reportTable(await python("evaluate", chunkings.picked(), ragTypes.picked())));
+      results.replaceChildren(...reportTable(await python("evaluate", chunkings.picked(),
+                                                          ragTypes.picked(), retrievers.picked())));
     };
     mode.onchange();
     const controls = el("div", "rp-controls");
-    controls.append(chunkings.box, ragTypes.box);
+    controls.append(chunkings.box, retrievers.box, ragTypes.box);
     app.append(documentsBox(info.documents), el("label", "rp-label", "Mode"), mode, live.box,
                el("label", "rp-label", "Question"), question, presets, controls,
                runButton, evalButton, results);
     runButton.onclick();
   }
 
-  async function runAll(info, mode, live, question, chunkings, ragTypes, results) {
+  async function runAll(info, mode, live, question, chunkings, retrievers, ragTypes, results) {
     const preset = info.questions.find((q) => q.question === question.trim());
     if (mode === "recorded" && !preset) {
       results.replaceChildren(el("p", "rp-status", "Recorded mode only knows the listed "
@@ -116,16 +120,19 @@
       return;
     }
     const cards = [];
+    const setups = chunkings.flatMap((chunking) => retrievers.flatMap((retriever) =>
+      ragTypes.map((ragType) => ({ chunking, retriever, ragType }))));
     try {
-      for (const chunking of chunkings) {
-        for (const ragType of ragTypes) {
-          results.replaceChildren(el("p", "rp-status", `Running ${ragType} + ${chunking}`
-            + `${mode === "live" ? " with your Ollama (this can take a while)" : ""}…`));
-          const run = mode === "live"
-            ? await python("live_run", ...live.settings(), chunking, ragType, question, live.documents())
-            : await python("run", chunking, ragType, preset.id);
-          cards.push(card(info.flows[ragType], `${ragType} + ${chunking}`, run));
-        }
+      for (const { chunking, retriever, ragType } of setups) {
+        const title = `${ragType} + ${chunking} + ${retriever}`;
+        results.replaceChildren(el("p", "rp-status", `Running ${title}`
+          + `${mode === "live" ? " with your Ollama (this can take a while)" : ""}…`));
+        const run = mode === "live"
+          ? await python("live_run", ...live.settings(), chunking, ragType, question,
+                         live.documents(), retriever)
+          : await python("run", chunking, ragType, preset.id, retriever);
+        // hybrid search draws its own steps, so the diagram depends on the retriever too
+        cards.push(card(info.flows[ragType][retriever], title, run));
       }
     } catch (error) {
       results.replaceChildren(el("p", "rp-status", `Could not run: ${error.message}`));

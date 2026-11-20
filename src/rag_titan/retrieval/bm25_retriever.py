@@ -28,6 +28,7 @@ class BM25Retriever(BaseRetriever):
     """
 
     name = "bm25"
+    label = "Keyword search"
 
     def __init__(self, store, k1=1.5, b=0.75, dedupe_overlap=0.5):
         if dedupe_overlap is not None and not 0 < dedupe_overlap <= 1:
