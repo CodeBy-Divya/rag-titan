@@ -13,6 +13,7 @@ Example:
     store = QdrantStore(url="http://localhost:6333")            # Qdrant server
 """
 
+import atexit
 import os
 import uuid
 from pathlib import Path
@@ -28,6 +29,14 @@ ID_SPACE = uuid.UUID("5f1d7a52-3c4b-4f43-9a8e-2f6f7c0d9b11")
 # QdrantStore on the same folder in this Python process shares one client
 # (re-running `RAGTitan(...)` in a notebook would fail otherwise)
 LOCAL_CLIENTS = {}
+
+
+@atexit.register
+def _close_local_clients():
+    """Close shared clients while Python still works (late cleanup prints an error)."""
+    for client in list(LOCAL_CLIENTS.values()):
+        client.close()
+    LOCAL_CLIENTS.clear()
 
 
 class QdrantStore(BaseStore):

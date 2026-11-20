@@ -6,6 +6,39 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-21
+
+### Added
+- **Saved vector stores: index once, ask later.** `VECTOR_STORE=sqlite` keeps the
+  index in one file (`rag_titan.db`) with nothing to install; `VECTOR_STORE=chroma`
+  (`pip install "rag-titan[chroma]"`) and `VECTOR_STORE=qdrant`
+  (`pip install "rag-titan[qdrant]"`) keep it in a folder or on a server. Guide:
+  [Vector stores](https://aion7891.github.io/rag-titan/vector-stores/).
+- `SQLiteStore`, `ChromaStore` and `QdrantStore` in `rag_titan.vector_stores`.
+  Every store gives cosine scores and passes the same checks
+  (`tests/store_contract.py`, reusable for your own store).
+- `rag-titan index --files ...` (`--add` to keep what is indexed); `ask` and `chat`
+  use the saved index when `--files` is left out. `--vector-store` and
+  `--store-path` on `index`, `ask` and `chat`.
+- Adding to an index (`rag.index(files, reset=False)`): a file indexed before is
+  replaced instead of stored twice, and chunk ids go on counting, so citations
+  stay right.
+- The index remembers its embedding model and vector size: searching or adding
+  with another embedder stops with a clear message instead of wrong results.
+- Settings `VECTOR_STORE_PATH`, `VECTOR_STORE_URL`, `COLLECTION` and
+  `QDRANT_API_KEY`.
+- `BaseStore.delete_source()`, `get_info()`, `set_info()` and `persistent`, with
+  defaults, so stores written for 0.9 keep working.
+
+### Changed
+- Evaluation never changes a saved index: `rag-titan evaluate` (also
+  `--retrieval-only`), `compare_setups()`, `evaluate_stages()` and
+  `collect_dataset()` index into a temporary in-memory copy.
+- `vector_store_path` follows the store when it is not set: `rag_titan.db`,
+  `rag_titan_chroma` or `rag_titan_qdrant` (`None` for `memory`).
+- `build_store()` and `VECTOR_STORES` live in `rag_titan.vector_stores.store_registry`;
+  `from rag_titan.factory import build_store` still works.
+
 ## [0.9.0] - 2026-11-20
 
 ### Added

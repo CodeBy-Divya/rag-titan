@@ -4,6 +4,7 @@ Skipped when chromadb / qdrant-client are not installed.
 """
 
 import builtins
+from pathlib import Path
 
 import pytest
 from store_contract import StoreContract
@@ -111,3 +112,17 @@ def test_index_then_search_from_a_new_store(name, tmp_path):
     assert "leave" in results[0]["text"]
     with pytest.raises(ValueError, match="built with hash"):
         DenseRetriever(HashEmbedder(32), again).retrieve("leave")
+
+
+def test_a_program_using_local_qdrant_exits_quietly(tmp_path):
+    pytest.importorskip("qdrant_client")
+    import subprocess
+    import sys
+
+    script = ("from rag_titan.vector_stores import QdrantStore\n"
+              "from store_contract import VECTORS, chunk\n"
+              f"QdrantStore(path={str(tmp_path / 'q')!r}).add([chunk(0)], VECTORS[:1])\n")
+    done = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True,
+                          cwd=str(Path(__file__).parent), timeout=60)
+
+    assert done.returncode == 0 and done.stderr == ""
