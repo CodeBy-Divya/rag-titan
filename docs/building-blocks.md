@@ -18,7 +18,7 @@ Answering:  Retriever -> Reranker -> Generator  (each uses the LLM / Embedder)
 | Loader    | `BaseLoader`    | `PdfLoader`, `DocxLoader`, `TextLoader`           | `loaders/`             |
 | Chunker   | `BaseChunker`   | 8 chunkers, see [Chunking methods](chunking.md)   | `chunking/`            |
 | Embedder  | `BaseEmbedder`  | `OllamaEmbedder`, `HashEmbedder`, `FunctionEmbedder`, `ReplayEmbedder` | `embeddings/` |
-| Store     | `BaseStore`     | `MemoryStore`                                     | `vector_stores/`       |
+| Store     | `BaseStore`     | `MemoryStore`, `SQLiteStore`, `ChromaStore`, `QdrantStore` ([Vector stores](vector-stores.md)) | `vector_stores/` |
 | Retriever | `BaseRetriever` | `DenseRetriever` (old name: `Retriever`)          | `retrieval/`           |
 | Reranker  | `BaseReranker`  | `KeywordReranker`, `NoReranker`                   | `retrieval/rerankers/` |
 | Generator | `BaseGenerator` | `GroundedGenerator`                               | `generation/`          |

@@ -19,6 +19,9 @@ With `rag-titan` you get:
   see every step a type took with `run()`. → [RAG types](rag-types.md)
 - **Answers grounded in your files.** The model answers only from your documents
   and cites the chunks and pages it used, running locally with Ollama.
+- **Index once, ask later.** Keep the index in one SQLite file (nothing to
+  install), Chroma or Qdrant, and add or replace files as they change.
+  → [Vector stores](vector-stores.md)
 - **Chunking your way.** Eight chunkers, from fixed word windows to whole
   sentences, paragraphs, heading sections or pages. → [Chunking methods](chunking.md)
 - **Measure, don't guess.** Compare any chunker with any RAG type on your own

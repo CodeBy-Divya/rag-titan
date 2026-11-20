@@ -28,7 +28,11 @@ cp .env.example .env
 | `CHUNK_SIZE`      | `chunk_size`      | `150`                    | Units per chunk (see below)                    |
 | `CHUNK_OVERLAP`   | `chunk_overlap`   | `30`                     | Units shared by neighbouring chunks            |
 | `CHUNK_ENCODING`  | `chunk_encoding`  | `cl100k_base`            | tiktoken encoding (`token` only)               |
-| `VECTOR_STORE`    | `vector_store`    | `memory`                 | Where vectors are stored                       |
+| `VECTOR_STORE`    | `vector_store`    | `memory`                 | `memory`, `sqlite`, `chroma`, `qdrant`: see [Vector stores](vector-stores.md) |
+| `VECTOR_STORE_PATH` | `vector_store_path` | store's (`rag_titan.db`) | File (sqlite) or folder (chroma, qdrant) of a saved index |
+| `VECTOR_STORE_URL` | `vector_store_url` | –                       | Chroma or Qdrant server instead of a folder    |
+| `COLLECTION`      | `collection`      | `rag_titan`              | Chroma / Qdrant collection, one per index      |
+| `QDRANT_API_KEY`  | –                 | –                        | Qdrant Cloud key                               |
 | `DEDUPE_OVERLAP`  | `dedupe_overlap`  | `0.5`                    | Drop near-copy search results; `off` keeps all |
 | `RERANKER`        | `reranker`        | `keyword`                | `keyword` or `none`                            |
 | `GENERATOR`       | `generator`       | `grounded`               | How answers are written                        |

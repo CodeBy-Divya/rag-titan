@@ -12,6 +12,20 @@ same tool with the same options; use it on Windows when security settings block 
 rag-titan ask --files handbook.pdf --question "How many leave days do I get?"
 ```
 
+## Index once, ask later
+
+```bash
+rag-titan index --files handbook.pdf policy.docx --vector-store sqlite
+rag-titan ask --question "How many leave days do I get?" --vector-store sqlite
+rag-titan index --files new_policy.pdf --vector-store sqlite --add
+```
+
+`index` saves the chunks in a [saved vector store](vector-stores.md) (here the
+file `rag_titan.db`); `ask` and `chat` without `--files` then use it. `--add`
+keeps what is indexed and replaces files indexed before. `--store-path` picks
+another file or folder. With `VECTOR_STORE=sqlite` in `.env`, leave out
+`--vector-store`. Commands with `--files` index those files first, as before.
+
 ## Chat in a loop
 
 ```bash
