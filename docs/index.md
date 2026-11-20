@@ -22,6 +22,9 @@ With `rag-titan` you get:
 - **Index once, ask later.** Keep the index in one SQLite file (nothing to
   install), Chroma or Qdrant, and add or replace files as they change.
   → [Vector stores](vector-stores.md)
+- **Search by meaning, exact words, or both.** Hybrid search fuses vector and
+  BM25 keyword search, so error codes are found as well as reworded questions.
+  → [Retrieval](retrieval.md)
 - **Chunking your way.** Eight chunkers, from fixed word windows to whole
   sentences, paragraphs, heading sections or pages. → [Chunking methods](chunking.md)
 - **Measure, don't guess.** Compare any chunker with any RAG type on your own

@@ -45,9 +45,11 @@ Questions to look at:
   simple + paragraph: q_006  recall 0.50  found ['remote_work.md']
 ```
 
-Every `--rag-type` is tried with every `--chunker` (here 2 × 2 = 4 setups).
+Every `--rag-type` is tried with every `--chunker` (here 2 × 2 = 4 setups), and
+with every `--retriever` when you add one (`--retriever dense bm25 hybrid`).
 Setups with the same chunker share one index, so the files are embedded once
-per chunker.
+per chunker, whatever the retrievers. See [Retrieval](retrieval.md) for a
+worked comparison.
 
 **3. See why one question went wrong**, step by step:
 
