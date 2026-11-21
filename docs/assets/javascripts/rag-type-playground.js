@@ -12,7 +12,7 @@
   app.replaceChildren(status);
   const python = RagPython.start(status);
 
-  // [setting, label, min, max, step, what it does]
+  // [setting, label, min, max, step, what it does], or [setting, label, "on/off", what it does]
   const KNOBS = {
     all: [["top_k", "top_k", 1, 12, 1, "chunks the search finds"],
           ["top_n", "top_n", 1, 12, 1, "chunks kept after reranking (at most top_k)"]],
@@ -20,6 +20,10 @@
                 "searches (with a rewritten question) before giving up"]],
     parent_child: [["parent_budget", "parent budget", 200, 4000, 100,
                     "most characters of parent sections given to the model"]],
+    hyde: [["hyde_with_question", "search the question too", "on/off",
+            "fuse the question's search with the made-up answer's"]],
+    rag_fusion: [["fusion_queries", "queries", 1, 5, 1,
+                  "rewordings of the question, each one searched next to it"]],
   };
 
   function select(label, options, value) {
@@ -46,6 +50,19 @@
              reset: () => { input.value = value; update(); } };
   }
 
+  // an on/off knob, with the same parts as a slider
+  function toggle([key, label, , help], value, recorded) {
+    const input = el("select", "rp-input");
+    [["on", "on"], ["off", "off"]].forEach(([name, text]) => input.append(
+      Object.assign(el("option", "", text), { value: name, selected: (name === "on") === value })));
+    const box = el("label", "rt-control");
+    box.append(el("span", "rt-name", label), input,
+      el("span", "rt-help", `${help}. Default ${value ? "on" : "off"}`
+        + (recorded ? "; answers recorded for on · off" : "")));
+    return { key, box, input, update: () => {}, value: () => input.value === "on",
+             reset: () => { input.value = value ? "on" : "off"; } };
+  }
+
   function build(info) {
     const flows = info.flows[ragType];
     if (!info.rag_types.includes(ragType)) {
@@ -67,8 +84,8 @@
       info.parent_sizes.map((n) => [n, `${n} characters`]), info.parent_sizes[0]) : null;
     const retriever = select("Retriever", info.retrievers.map((r) => [r, r]), "dense");
     const reranker = select("Reranker", info.rerankers.map((r) => [r, r]), info.reranker);
-    const sliders = [...KNOBS.all, ...(KNOBS[ragType] || [])]
-      .map((knob) => slider(knob, defaults[knob[0]], grid[knob[0]]));
+    const sliders = [...KNOBS.all, ...(KNOBS[ragType] || [])].map((knob) =>
+      (knob[2] === "on/off" ? toggle : slider)(knob, defaults[knob[0]], grid[knob[0]]));
 
     const tuning = () => {
       const values = { reranker: reranker.value() };

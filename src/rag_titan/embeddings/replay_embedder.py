@@ -30,16 +30,23 @@ class RecordingEmbedder(BaseEmbedder):
     Args:
         embedder: any BaseEmbedder, for example an OllamaEmbedder.
         decimals: digits kept per number in `vectors` (smaller files).
+        known: optional vectors from an earlier recording ({text key: vector});
+            texts found there are not embedded again. `vectors` holds only the
+            texts this recording used.
     """
 
-    def __init__(self, embedder, decimals=5):
+    def __init__(self, embedder, decimals=5, known=None):
         super().__init__(embedder.model)
         self.embedder = embedder
         self.decimals = decimals
+        self.known = dict(known or {})
         self.vectors = {}
 
     def embed_many(self, texts):
         """Embed new texts with the real model, save every vector, and return the saved ones."""
+        for text in texts:
+            if text_key(text) not in self.vectors and text_key(text) in self.known:
+                self.vectors[text_key(text)] = self.known[text_key(text)]
         new = [text for text in texts if text_key(text) not in self.vectors]
         if new:
             for text, vector in zip(new, self.embedder.embed_many(new)):

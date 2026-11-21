@@ -21,14 +21,23 @@ const RagSteps = (() => {
     return flat.length > LONG ? `${flat.slice(0, LONG - 1)}…` : flat;
   }
 
-  // How a fused (hybrid) score was made: "vector #2 · keyword #1 · rrf 0.0325".
+  // How a fused score was made: "vector #2 · keyword #1 · rrf 0.0325" (hybrid search) or
+  // "query 1 #3 · query 2 #1 · rrf 0.0325" (HyDE, RAG-Fusion: one list per search query).
+  const LIST_NAMES = { dense: "vector", bm25: "keyword" };
   function ranks(trace) {
     if (!trace || !("rrf" in trace)) return "";
-    const parts = [];
-    if ("dense_rank" in trace) parts.push(`vector #${trace.dense_rank}`);
-    if ("bm25_rank" in trace) parts.push(`keyword #${trace.bm25_rank}`);
+    const parts = Object.keys(trace).filter((key) => key.endsWith("_rank")).map((key) => {
+      const list = key.slice(0, -"_rank".length);
+      return `${LIST_NAMES[list] || list.replace("_", " ")} #${trace[key]}`;
+    });
     parts.push(`rrf ${trace.rrf.toFixed(4)}`);
     return `  [${parts.join(" · ")}]`;
+  }
+
+  // Several result lists by name (the input of "fuse lists"): "query_1: 8 chunks, query_2: 3".
+  function isLists(value) {
+    return value && typeof value === "object" && !Array.isArray(value)
+      && Object.values(value).length > 0 && Object.values(value).every(isChunks);
   }
 
   function chunkLine(chunk) {
@@ -58,6 +67,10 @@ const RagSteps = (() => {
       return value.error.startsWith("NotRecorded")
         ? "not recorded: no model reply was recorded for these settings"
         : `failed: ${short(value.error)}`;
+    }
+    if (isLists(value)) {
+      return Object.entries(value).map(([name, chunks]) =>
+        `${name.replace("_", " ")}: ${chunks.length} chunk${chunks.length === 1 ? "" : "s"}`).join(", ");
     }
     if (isChunks(value)) {
       const word = value.length && value[0].children ? "parent section" : "chunk";

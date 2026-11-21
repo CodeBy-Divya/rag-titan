@@ -70,8 +70,8 @@ const RagCards = (() => {
     // (or the step where a run past the recording stopped)
     const has = (id) => flow.nodes.some((node) => node.id === id);
     const search = has("fuse") ? "fuse" : "retrieve";
-    // Parent-Child RAG: its own step, the expansion to parents, says the most
-    const open = run.stopped_at || (has("expand") ? "expand" : search);
+    // a type's own step says the most: Parent-Child's expansion, HyDE's and RAG-Fusion's fusing
+    const open = run.stopped_at || ["expand", "fuse_queries"].find(has) || search;
     return { box, play: (delay) => diagram.play(run.steps, delay || 650)
       .then(() => diagram.select(open)) };
   }

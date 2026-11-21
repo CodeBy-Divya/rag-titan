@@ -42,6 +42,9 @@ class RAGFusionRAG(QueryTransformRAG):
             queries + 1 searches with the question.
     """
 
+    # rewordings searched next to the question (FUSION_QUERIES)
+    DEFAULT_QUERIES = 3
+
     FLOW = {
         "nodes": [
             {"id": "write_queries", "label": "Write search queries", "kind": "llm"},
@@ -59,7 +62,7 @@ class RAGFusionRAG(QueryTransformRAG):
 
     def __init__(self, llm, retriever, reranker, generator,
                  top_k=QueryTransformRAG.DEFAULT_TOP_K, top_n=QueryTransformRAG.DEFAULT_TOP_N,
-                 queries=3):
+                 queries=DEFAULT_QUERIES):
         super().__init__(llm, retriever, reranker, generator, top_k, top_n)
         check_count("queries", queries)
         if queries > MAX_QUERIES:

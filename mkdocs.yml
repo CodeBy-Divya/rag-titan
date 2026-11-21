@@ -81,6 +81,8 @@ nav:
       - Simple RAG: rag-playground/simple.md
       - Adaptive RAG: rag-playground/adaptive.md
       - Parent-Child RAG: rag-playground/parent-child.md
+      - HyDE RAG: rag-playground/hyde.md
+      - RAG-Fusion: rag-playground/rag-fusion.md
       - Chunk playground: playground.md
   - Advanced:
       - Extending rag-titan: extending.md

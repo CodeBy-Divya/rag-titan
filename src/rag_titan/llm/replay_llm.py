@@ -34,11 +34,17 @@ class RecordingLLM(BaseLLM):
 
     Args:
         llm: any BaseLLM, for example an OllamaLLM.
+        known: optional replies from an earlier recording ({prompt key: reply}).
+            A prompt found there reuses its reply instead of asking the model,
+            so recording again (for a new RAG type, say) does not change the
+            runs that were recorded before. `replies` holds only the prompts
+            this recording asked, so replies nobody uses any more are left out.
     """
 
-    def __init__(self, llm):
+    def __init__(self, llm, known=None):
         super().__init__(llm.model)
         self.llm = llm
+        self.known = dict(known or {})
         self.replies = {}
 
     def chat(self, messages, tools=None):
@@ -48,7 +54,10 @@ class RecordingLLM(BaseLLM):
 
         key = prompt_key(messages)
         if key not in self.replies:
-            self.replies[key] = self.llm.chat(messages)["content"]
+            if key in self.known:
+                self.replies[key] = self.known[key]
+            else:
+                self.replies[key] = self.llm.chat(messages)["content"]
 
         return {"content": self.replies[key], "tool_calls": [], "message": {"role": "assistant"}}
 

@@ -16,7 +16,7 @@ BROWSER_RERANKERS = ["keyword", "none", "mmr", "llm"]
 
 # every knob a page may send
 TUNING_KEYS = ["reranker", "top_k", "top_n", "adaptive_max_attempts", "parent_budget",
-               "parent_size"]
+               "parent_size", "hyde_with_question", "fusion_queries"]
 
 
 def default_tuning():
@@ -26,6 +26,8 @@ def default_tuning():
     defaults["adaptive"]["adaptive_max_attempts"] = CLASSES["adaptive"].DEFAULT_MAX_ATTEMPTS
     defaults["parent_child"]["parent_budget"] = CLASSES["parent_child"].DEFAULT_PARENT_BUDGET
     defaults["parent_child"]["parent_size"] = DEFAULT_PARENT_SIZE
+    defaults["hyde"]["hyde_with_question"] = CLASSES["hyde"].DEFAULT_WITH_QUESTION
+    defaults["rag_fusion"]["fusion_queries"] = CLASSES["rag_fusion"].DEFAULT_QUERIES
     return defaults
 
 

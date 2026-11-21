@@ -162,3 +162,27 @@ def test_a_recorded_grid_replays_every_knob_value():
     small = playground.run("word", "parent_child", "q1", tuning={"parent_size": 60})
     assert small["recorded"] and small["steps"][2]["step"] == "expand"
     assert check_presets(presets) == []
+
+
+QUERY_GRID = {"hyde": {"hyde_with_question": [True, False]},
+              "rag_fusion": {"fusion_queries": [1, 3]}}
+
+
+def test_the_query_transformation_knobs_record_and_replay():
+    presets = record_presets(DOCUMENTS, QUESTIONS, PRESET_CHUNKING, MoodyLLM(), FakeEmbedder(),
+                             grid=QUERY_GRID)
+    playground = Playground(presets)
+
+    alone = playground.run("word", "hyde", "q1", tuning={"hyde_with_question": False})
+    assert alone["recorded"] and "fuse_queries" not in [s["step"] for s in alone["steps"]]
+    one = playground.run("word", "rag_fusion", "q1", tuning={"fusion_queries": 1})
+    assert one["recorded"] and one["steps"][0]["step"] == "write_queries"
+    assert check_presets(presets) == []
+
+
+def test_the_query_transformation_defaults_for_the_pages():
+    defaults = default_tuning()
+    assert defaults["hyde"] == {"top_k": 5, "top_n": 2, "hyde_with_question": True}
+    assert defaults["rag_fusion"] == {"top_k": 5, "top_n": 2, "fusion_queries": 3}
+    assert check_tuning({"hyde_with_question": False, "fusion_queries": 4}, [1500]) == {
+        "hyde_with_question": False, "fusion_queries": 4}

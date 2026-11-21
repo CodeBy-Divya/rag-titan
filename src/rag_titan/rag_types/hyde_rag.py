@@ -41,6 +41,9 @@ class HyDERAG(QueryTransformRAG):
             (default True); False searches with the made-up passage only.
     """
 
+    # also search with the question (HYDE_WITH_QUESTION)
+    DEFAULT_WITH_QUESTION = True
+
     FLOW = {
         "nodes": [
             {"id": "hypothesize", "label": "Write hypothetical answer", "kind": "llm"},
@@ -58,7 +61,7 @@ class HyDERAG(QueryTransformRAG):
 
     def __init__(self, llm, retriever, reranker, generator,
                  top_k=QueryTransformRAG.DEFAULT_TOP_K, top_n=QueryTransformRAG.DEFAULT_TOP_N,
-                 with_question=True):
+                 with_question=DEFAULT_WITH_QUESTION):
         super().__init__(llm, retriever, reranker, generator, top_k, top_n)
         if not isinstance(with_question, bool):
             raise ValueError(f"with_question must be True or False, got {with_question!r}")

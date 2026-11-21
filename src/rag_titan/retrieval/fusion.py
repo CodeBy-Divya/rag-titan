@@ -89,7 +89,8 @@ def search_and_fuse(retriever, queries, top_k, trace, pool_size=None, k=RRF_K,
         top_k: how many fused chunks to return.
         trace: the Trace of the RAG run.
         pool_size: results per search before fusing; None uses max(20, 4 * top_k).
-        k, dedupe_overlap: see fuse_ranked().
+        k: the RRF constant (see fuse_ranked()).
+        dedupe_overlap: drop near-copies after fusing (see fuse_ranked()).
 
     Returns:
         The top_k fused chunks. With one query: that search's own top_k, no fusing.

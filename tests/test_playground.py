@@ -103,7 +103,7 @@ def test_playground_session_gives_the_page_what_it_needs():
     playground = Playground(json.loads(PRESETS.read_text(encoding="utf-8")))
     info = playground.info()
 
-    assert info["rag_types"] == ["simple", "adaptive", "parent_child"]
+    assert info["rag_types"] == RAG_TYPES
     assert info["retrievers"] == ["dense", "bm25", "hybrid"]
     assert info["flows"]["adaptive"]["dense"]["nodes"][0]["id"] == "route"
     hybrid_ids = [node["id"] for node in info["flows"]["simple"]["hybrid"]["nodes"]]
@@ -147,3 +147,34 @@ def test_every_page_setting_gives_plain_json():
         for reranker in ("keyword", "none", "mmr", "llm"):
             run = playground.run("word", rag_type, "q_006", "hybrid", {"reranker": reranker})
             assert json.loads(json.dumps(run)) == run
+
+
+def test_recording_again_reuses_the_earlier_replies_and_vectors():
+    """Adding a RAG type must not change the runs (and claims) recorded before."""
+    first = record_presets(DOCUMENTS, QUESTIONS, PRESET_CHUNKING, MoodyLLM(), FakeEmbedder())
+    model = MoodyLLM()                     # answers differently every time it is asked
+    again = record_presets(DOCUMENTS, QUESTIONS, PRESET_CHUNKING, model, FakeEmbedder(),
+                           earlier=first)
+
+    assert model.calls == 0                # every prompt was known: the model was not asked
+    assert again["expected"] == first["expected"] and again["replies"] == first["replies"]
+
+
+def test_recording_llm_and_embedder_use_known_answers_first():
+    llm = MoodyLLM()
+    recorder = RecordingLLM(llm, known={})
+    reply = recorder.ask("route", "how many leave days")
+    replay = RecordingLLM(MoodyLLM(), known=recorder.replies)
+    assert replay.ask("route", "how many leave days") == reply and replay.llm.calls == 0
+    assert replay.replies == recorder.replies           # only what this recording used
+
+    from rag_titan.embeddings import RecordingEmbedder
+
+    class NoModel(FakeEmbedder):
+        def embed_many(self, texts):
+            raise AssertionError("a known vector must not be embedded again")
+
+    first = RecordingEmbedder(FakeEmbedder())
+    vectors = first.embed_many(["a b"])
+    reuse = RecordingEmbedder(NoModel(), known=first.vectors)
+    assert [list(v) for v in reuse.embed_many(["a b"])] == [list(v) for v in vectors]
