@@ -59,6 +59,11 @@ qdrant = [
 rerank = [
     "sentence-transformers>=3.0",
 ]
+# every optional feature in one install: pip install "rag-titan[all]"
+# (it names the extras above, so each package and version is written once)
+all = [
+    "rag-titan[tokens,chroma,qdrant,rerank]",
+]
 docs = [
     "mkdocs-material>=9.5",
     "mkdocstrings[python]>=0.25",

@@ -4892,6 +4892,12 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+all = [
+    { name = "chromadb" },
+    { name = "qdrant-client" },
+    { name = "sentence-transformers" },
+    { name = "tiktoken" },
+]
 chroma = [
     { name = "chromadb" },
 ]
@@ -4920,6 +4926,7 @@ tokens = [
 [package.metadata]
 requires-dist = [
     { name = "build", marker = "extra == 'dev'", specifier = ">=1.2" },
+    { name = "chromadb", marker = "extra == 'all'", specifier = ">=1.0" },
     { name = "chromadb", marker = "extra == 'chroma'", specifier = ">=1.0" },
     { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.5" },
     { name = "mkdocstrings", extras = ["python"], marker = "extra == 'docs'", specifier = ">=0.25" },
@@ -4928,13 +4935,16 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "python-docx", specifier = ">=1.1" },
     { name = "python-dotenv", specifier = ">=1.0" },
+    { name = "qdrant-client", marker = "extra == 'all'", specifier = ">=1.10" },
     { name = "qdrant-client", marker = "extra == 'qdrant'", specifier = ">=1.10" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
+    { name = "sentence-transformers", marker = "extra == 'all'", specifier = ">=3.0" },
     { name = "sentence-transformers", marker = "extra == 'rerank'", specifier = ">=3.0" },
+    { name = "tiktoken", marker = "extra == 'all'", specifier = ">=0.7" },
     { name = "tiktoken", marker = "extra == 'tokens'", specifier = ">=0.7" },
     { name = "twine", marker = "extra == 'dev'", specifier = ">=5.0" },
 ]
-provides-extras = ["chroma", "dev", "docs", "qdrant", "rerank", "tokens"]
+provides-extras = ["all", "chroma", "dev", "docs", "qdrant", "rerank", "tokens"]
 
 [[package]]
 name = "readme-renderer"

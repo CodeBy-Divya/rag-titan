@@ -6,6 +6,15 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-11-22
+
+### Added
+- **One install for every feature**: `pip install "rag-titan[all]"` installs the
+  `tokens`, `chroma`, `qdrant` and `rerank` extras together. The README and
+  [Getting started](https://aion7891.github.io/rag-titan/getting-started/) list what
+  each extra adds, with the CPU-only PyTorch command for `rerank`. A test makes sure
+  every new extra is also part of `all`.
+
 ## [0.12.0] - 2026-11-22
 
 ### Added

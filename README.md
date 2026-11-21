@@ -43,7 +43,21 @@ pip install rag-titan
 ollama pull gemma3:4b && ollama pull nomic-embed-text
 ```
 
-For token-based chunking, add the extra: `pip install "rag-titan[tokens]"`.
+The plain install has all three RAG types, the SQLite store, every retriever,
+the keyword, MMR and LLM rerankers, evaluation and the CLI. Four features need an
+extra; `[all]` installs every one of them:
+
+| Install | Adds |
+|---|---|
+| `pip install "rag-titan[tokens]"` | `CHUNKER=token` (tiktoken) |
+| `pip install "rag-titan[chroma]"` | `VECTOR_STORE=chroma` |
+| `pip install "rag-titan[qdrant]"` | `VECTOR_STORE=qdrant` |
+| `pip install "rag-titan[rerank]"` | `RERANKER=cross_encoder` (sentence-transformers, PyTorch) |
+| `pip install "rag-titan[all]"` | all of the above |
+
+`rerank` (and so `all`) brings PyTorch, a large download on Linux. For a smaller one,
+install the CPU-only build first:
+`pip install torch --index-url https://download.pytorch.org/whl/cpu`.
 
 Needs Python 3.10+ and [Ollama](https://ollama.com/download). → [Full setup guide](https://aion7891.github.io/rag-titan/getting-started/)
 
