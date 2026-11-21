@@ -691,6 +691,28 @@ CHUNK_SIZE=1000      # characters
 CHUNK_OVERLAP=150
 ```
 
+## Parent-child chunking
+
+`ParentChildChunker` cuts each document twice: into **parents** (heading sections,
+or groups of paragraphs, at most `parent_size` characters) and each parent into
+small **children** with any chunker above. Children are what gets searched; each
+one keeps its parent's id, text and place, so [Parent-Child RAG](rag-types.md#parent-child-rag-parent_child)
+can give the model the whole section. A child never crosses two sections, and its
+offsets still point into the original file.
+
+```python
+from rag_titan.chunking import ParentChildChunker, WordChunker
+
+chunker = ParentChildChunker(WordChunker(25, 0), parent_size=1500)
+child = chunker.chunk([{"source": "offboarding.md", "text": text}])[0]
+child["text"]          # "Tell your manager and HR in writing at least four weeks ..."
+child["parent_id"]     # "offboarding.md#parent_0"
+child["parent_text"]   # "Offboarding guide > Before your last day\n\nTell your manager ..."
+```
+
+`RAGTitan(rag_type="parent_child")` builds it for you from `CHUNKER` and
+`PARENT_SIZE`.
+
 ## Writing your own chunker
 
 Inherit `BaseChunker` and write `split_text()`. `fixed_windows()` works on any

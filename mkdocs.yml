@@ -73,7 +73,7 @@ nav:
       - RAG types: rag-types.md
       - Building blocks: building-blocks.md
       - Chunking methods: chunking.md
-      - Retrieval (dense, BM25, hybrid): retrieval.md
+      - Retrieval and rerankers: retrieval.md
       - Vector stores: vector-stores.md
       - Agents: agents.md
   - Playgrounds:

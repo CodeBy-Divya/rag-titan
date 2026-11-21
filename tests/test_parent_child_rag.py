@@ -95,7 +95,7 @@ def test_run_searches_children_and_answers_from_parents(tmp_path):
     prompt = llm.calls[0][1]["content"]
     assert "Tell your manager before 10 am" in prompt and "from the doctor" in prompt
     # the log names the parents and how many children each one took in
-    assert "-> 2 chunks: leave.md#parent_1 (3 children, 137 chars)" in describe_steps(
+    assert "-> 2 sections: leave.md#parent_1 (3 children, 137 chars)" in describe_steps(
         result["steps"])
 
 

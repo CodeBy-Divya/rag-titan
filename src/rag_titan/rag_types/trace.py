@@ -125,8 +125,9 @@ def _describe_chunks(chunks):
 
 
 def _count(chunks):
-    """Return "1 chunk" or "3 chunks"."""
-    return "1 chunk" if len(chunks) == 1 else f"{len(chunks)} chunks"
+    """Return "1 chunk" or "3 chunks" ("1 section" for Parent-Child RAG's parents)."""
+    word = "section" if chunks and "children" in chunks[0] else "chunk"
+    return f"1 {word}" if len(chunks) == 1 else f"{len(chunks)} {word}s"
 
 
 def _children(parent):

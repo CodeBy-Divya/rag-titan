@@ -95,7 +95,7 @@ class ParentChildChunker(BaseChunker):
 
         Returns:
             {"parent_id": "leave.md#parent_1", "parent_text": ...,
-             "parent_start_offset": 120, "parent_end_offset": 410}, plus
+            "parent_start_offset": 120, "parent_end_offset": 410}, plus
             "parent_page_numbers" for documents with pages. The RAG type uses
             them to hand the model the parent, with its own place in the file.
         """

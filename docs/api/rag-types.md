@@ -7,3 +7,7 @@
 ::: rag_titan.rag_types.simple_rag
 
 ::: rag_titan.rag_types.adaptive
+
+::: rag_titan.rag_types.parent_child_rag
+
+::: rag_titan.rag_types.rag_registry

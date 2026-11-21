@@ -25,7 +25,7 @@ model is given.
 Every result below is a real recorded run you can repeat with the knobs. The
 sample policies have short sections (130 to 300 characters), so here a matched
 child usually holds the fact already and its section adds the rest around it; the
-[Parent-Child example](../rag-types.md) shows a longer document where only the
+[Parent-Child example](../rag-types.md#parent-child-rag-parent_child) shows a longer document where only the
 section holds the answer.
 
 1. **See the expansion.** Chunker `word`, question *When do I need a note from the
