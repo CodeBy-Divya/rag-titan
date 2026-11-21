@@ -12,7 +12,7 @@ deciding everything.
 
 from rag_titan.rag_types.trace import Trace
 from rag_titan.retrieval.base_retriever import BaseRetriever
-from rag_titan.retrieval.dedupe import remove_duplicates
+from rag_titan.retrieval.fusion import fuse_ranked, rrf_fuse
 
 
 class HybridRetriever(BaseRetriever):
@@ -90,46 +90,18 @@ class HybridRetriever(BaseRetriever):
 
     def fuse_top(self, dense, keyword, top_k):
         """Fuse the two result lists, drop near-copies, return the top_k scored from 0 to 1."""
-        best_possible = 2 / (self.k + 1)            # first in both lists
-        matches = [{**chunk, "score": trace["rrf"] / best_possible, "score_trace": trace}
-                   for chunk, trace in self.fuse({"dense": dense, "bm25": keyword})]
-        if self.dedupe_overlap is not None:
-            matches = remove_duplicates(matches, self.dedupe_overlap)
-        matches = matches[:top_k]
+        matches = fuse_ranked({"dense": dense, "bm25": keyword}, top_k, self.k,
+                              self.dedupe_overlap)
         return self._with_trace(matches, [match.pop("score_trace") for match in matches])
 
     def fuse(self, lists):
         """
-        Merge ranked lists with RRF.
+        Merge ranked lists with RRF (see retrieval/fusion.py).
 
         Args:
             lists: {"dense": [chunks, best first], "bm25": [...]}.
 
         Returns:
             A list of (chunk, score_trace) pairs, best fused score first.
-            Equal RRF scores are common with two lists (first + second place
-            in one order or the other), so they are broken by the 0-1
-            relevance summed over the lists; then by the order first seen.
         """
-        chunks, traces, relevance, first_seen = {}, {}, {}, {}
-        for name, results in lists.items():
-            for rank, result in enumerate(results, start=1):
-                key = result["id"]
-                first_seen.setdefault(key, len(first_seen))
-                chunks.setdefault(key, _plain_chunk(result))
-                trace = traces.setdefault(key, {"rrf": 0.0})
-                trace[name] = result["score_trace"].get(name, result["score"])
-                trace[f"{name}_rank"] = rank
-                trace["rrf"] += 1 / (self.k + rank)
-                relevance[key] = relevance.get(key, 0.0) + result["score"]
-
-        # rounding makes "equal" robust to float noise in the sums of 1 / (k + rank)
-        order = sorted(chunks, key=lambda key: (-round(traces[key]["rrf"], 12), -relevance[key],
-                                                first_seen[key]))
-        return [(chunks[key], traces[key]) for key in order]
-
-
-def _plain_chunk(result):
-    """The chunk without the scores one retriever added."""
-    return {key: value for key, value in result.items()
-            if key not in ("score", "retriever", "score_trace")}
+        return rrf_fuse(lists, self.k)
