@@ -100,10 +100,7 @@ def get_settings(overrides=None):
         "embed_model": os.getenv("EMBED_MODEL", "nomic-embed-text"),
 
         # Chunking
-        "chunker": os.getenv("CHUNKER", "word"),
-        "chunk_size": _get_int("CHUNK_SIZE", 150),
-        "chunk_overlap": _get_int("CHUNK_OVERLAP", 30),
-        "chunk_encoding": os.getenv("CHUNK_ENCODING", "cl100k_base"),  # token chunker only
+        **_chunk_settings(),
 
         # Storage, retrieval and generation
         **_store_settings(),
@@ -119,6 +116,18 @@ def get_settings(overrides=None):
     # fill these last, so an overridden provider or store gets its own defaults
     _fill_defaults(settings)
     return settings
+
+
+def _chunk_settings():
+    """Read the chunking settings from the environment."""
+    return {
+        "chunker": os.getenv("CHUNKER", "word"),
+        "chunk_size": _get_int("CHUNK_SIZE", 150),
+        "chunk_overlap": _get_int("CHUNK_OVERLAP", 30),
+        "chunk_encoding": os.getenv("CHUNK_ENCODING", "cl100k_base"),  # token chunker only
+        # parent_child RAG only: largest parent section, in characters
+        "parent_size": _get_int("PARENT_SIZE", 1500),
+    }
 
 
 def _store_settings():
