@@ -2,8 +2,9 @@
 Record the browser playground's examples with real models, or check a recording.
 
 It indexes the sample policies in examples/sample_docs/ with every preset chunking,
-runs every RAG type with every retriever on every question in examples/questions.json, and saves the
-model's replies, the embedding vectors and the expected runs in
+runs every RAG type with every retriever on every question in examples/questions.json,
+with its defaults and with each knob value of PRESET_GRID (one knob at a time), and
+saves the model's replies, the embedding vectors and the expected runs in
 docs/assets/playground/presets.json.
 
 Usage (from the repo root, Ollama running):
@@ -24,7 +25,7 @@ from rag_titan.embeddings import OllamaEmbedder
 from rag_titan.evaluation import load_questions
 from rag_titan.llm import OllamaLLM
 from rag_titan.loaders import load_document
-from rag_titan.playground import PRESET_CHUNKING, check_presets, record_presets
+from rag_titan.playground import PRESET_CHUNKING, PRESET_GRID, check_presets, record_presets
 
 ROOT = Path(__file__).resolve().parents[2]
 SAMPLES = ROOT / "examples" / "sample_docs"
@@ -39,13 +40,14 @@ def record(model, embed_model):
         document.pop("file_type", None)   # the playground only needs source and text
 
     presets = record_presets(documents, load_questions(QUESTIONS), PRESET_CHUNKING,
-                             OllamaLLM(model), OllamaEmbedder(embed_model))
+                             OllamaLLM(model), OllamaEmbedder(embed_model), grid=PRESET_GRID)
 
     # compact JSON: the file is downloaded by every playground visitor
     OUT.write_text(json.dumps(presets, ensure_ascii=False, sort_keys=True,
                               separators=(",", ":")), encoding="utf-8")
     runs = sum(len(runs) for by_retriever in presets["expected"].values()
-               for by_type in by_retriever.values() for runs in by_type.values())
+               for by_type in by_retriever.values() for by_tuning in by_type.values()
+               for runs in by_tuning.values())
     print(f"Recorded {runs} runs, {len(presets['replies'])} replies and "
           f"{len(presets['vectors'])} vectors -> {OUT.relative_to(ROOT)} "
           f"({OUT.stat().st_size / 1024:.0f} KB)")

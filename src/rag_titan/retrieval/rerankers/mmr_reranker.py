@@ -54,7 +54,8 @@ class MMRReranker(BaseReranker):
                 return self.lambda_ * relevance[i] - (1 - self.lambda_) * repeat
 
             best = max(left, key=mmr)        # the first of equal values wins
-            values.append(mmr(best))
+            # a plain float: numpy's float32 cannot be saved as JSON (the playground's results)
+            values.append(float(mmr(best)))
             picked.append(best)
             left.remove(best)
 

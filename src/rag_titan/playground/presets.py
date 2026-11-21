@@ -1,30 +1,16 @@
 """
-Playground presets: real model runs, recorded once, replayed anywhere.
+Playground presets: the parts every playground run is built from.
 
-    presets = record_presets(documents, questions, PRESET_CHUNKING, llm, embedder)
-    # runs every chunking x retriever x RAG type x question
-    problems = check_presets(presets)       # [] when a replay gives the same runs
-
-The recorder (tools/playground/record_traces.py), the tests and the browser all
-build their RAG types with build_parts(), so a replay is the same code as the recording.
+The recorder (recording.py), the tests and the browser all build their RAG
+types with build_parts(), so a replay is the same code as the recording.
 """
 
 from rag_titan.chunking.parent_child import ParentChildChunker
 from rag_titan.config import get_settings
-from rag_titan.embeddings.replay_embedder import RecordingEmbedder, ReplayEmbedder
-from rag_titan.factory import (
-    RETRIEVERS,
-    build_chunker,
-    build_generator,
-    build_rag,
-    build_reranker,
-    build_retriever,
-)
-from rag_titan.llm.replay_llm import RecordingLLM, ReplayLLM
+from rag_titan.embeddings.replay_embedder import ReplayEmbedder
+from rag_titan.factory import build_chunker, build_generator, build_reranker, build_retriever
+from rag_titan.llm.replay_llm import ReplayLLM
 from rag_titan.vector_stores.memory_store import MemoryStore
-
-# the RAG types recorded for the playground (parent_child joins when it is recorded)
-PRESET_RAG_TYPES = ["simple", "adaptive"]
 
 # the ingestion choices offered in the playground
 PRESET_CHUNKING = {
@@ -84,49 +70,6 @@ def index_documents(parts, documents):
     return len(chunks)
 
 
-def summarize_run(result):
-    """The part of a run() result a replay must repeat exactly (timings change)."""
-    return {
-        "answer": result["answer"],
-        "steps": [step["step"] for step in result["steps"]],
-        "sources": [chunk["id"] for chunk in result["sources"]],
-    }
-
-
-def record_presets(documents, questions, chunking, llm, embedder):
-    """
-    Run every RAG type with every chunking and retriever on every question, and record it.
-
-    Args:
-        documents: list of {"source", "text"} dicts.
-        questions: list of question dicts (see load_questions).
-        chunking: dict of {name: setting overrides}, e.g. PRESET_CHUNKING.
-        llm: the real model, e.g. OllamaLLM("gemma3:4b").
-        embedder: the real embedder, e.g. OllamaEmbedder("nomic-embed-text").
-
-    Returns:
-        A JSON-ready dict: documents, questions, settings, the recorded replies and
-        vectors, and the expected summary of every run:
-        expected[chunking][retriever][rag_type][question id].
-    """
-    llm, embedder = RecordingLLM(llm), RecordingEmbedder(embedder)
-    presets = {"model": llm.model, "embed_model": embedder.model, "documents": documents,
-               "questions": questions, "rag_types": list(PRESET_RAG_TYPES),
-               "retrievers": list(RETRIEVERS),
-               "settings": {name: preset_settings(o) for name, o in chunking.items()},
-               "expected": {}}
-
-    for name, settings in presets["settings"].items():
-        parts = build_parts(settings, embedder, llm)
-        index_documents(parts, documents)          # one index, searched by every retriever
-        presets["expected"][name] = {retriever: _run_all(with_retriever(parts, retriever),
-                                                         questions, PRESET_RAG_TYPES)
-                                     for retriever in RETRIEVERS}
-
-    presets["replies"], presets["vectors"] = llm.replies, embedder.vectors
-    return presets
-
-
 def replay_parts(presets, name, retriever="dense", parent_size=None):
     """
     Build and index the parts of one preset chunking, answering from the recording.
@@ -140,31 +83,3 @@ def replay_parts(presets, name, retriever="dense", parent_size=None):
     parts = build_parts(presets["settings"][name], embedder, llm, retriever, parent_size)
     index_documents(parts, presets["documents"])
     return parts
-
-
-def check_presets(presets):
-    """Replay every recorded run; return a list of differences ([] means all the same)."""
-    problems = []
-
-    for name, by_retriever in presets["expected"].items():
-        parts = replay_parts(presets, name)
-        for retriever, expected in by_retriever.items():
-            replayed = _run_all(with_retriever(parts, retriever), presets["questions"],
-                                presets["rag_types"])
-            for rag_type, runs in expected.items():
-                for question_id, run in runs.items():
-                    again = replayed.get(rag_type, {}).get(question_id)
-                    if again != run:
-                        problems.append(f"{name} / {retriever} / {rag_type} / {question_id}: "
-                                        f"recorded {run}, replayed {again}")
-
-    return problems
-
-
-def _run_all(parts, questions, rag_types):
-    """{rag_type: {question id: summarize_run(...)}} for every RAG type and question."""
-    runs = {}
-    for rag_type in rag_types:
-        rag = build_rag(rag_type, parts)
-        runs[rag_type] = {q["id"]: summarize_run(rag.run(q["question"])) for q in questions}
-    return runs

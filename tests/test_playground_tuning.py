@@ -7,11 +7,15 @@ import pytest
 from conftest import FakeEmbedder
 from test_playground import DOCUMENTS, QUESTIONS, MoodyLLM
 
-from rag_titan.chunking import ParentChildChunker
-from rag_titan.embeddings.replay_embedder import text_key
-from rag_titan.factory import build_chunker
 from rag_titan.llm import ReplayLLM
-from rag_titan.playground import PRESET_CHUNKING, LivePlayground, Playground, record_presets
+from rag_titan.playground import (
+    PRESET_CHUNKING,
+    LivePlayground,
+    Playground,
+    check_presets,
+    grid_tunings,
+    record_presets,
+)
 from rag_titan.playground.tuning import check_tuning, default_tuning
 from rag_titan.rag_types import Trace
 from rag_titan.utils.not_recorded import NotRecorded
@@ -19,14 +23,8 @@ from rag_titan.utils.not_recorded import NotRecorded
 
 @pytest.fixture(scope="module")
 def presets():
-    """A small recording, plus vectors for the Parent-Child children of every chunking."""
-    recorded = record_presets(DOCUMENTS, QUESTIONS, PRESET_CHUNKING, MoodyLLM(), FakeEmbedder())
-    embedder = FakeEmbedder()
-    for settings in recorded["settings"].values():
-        chunks = ParentChildChunker(build_chunker(settings), 1500).chunk(DOCUMENTS)
-        for chunk, vector in zip(chunks, embedder.embed_many([c["text"] for c in chunks])):
-            recorded["vectors"][text_key(chunk["text"])] = [float(x) for x in vector]
-    return recorded
+    """A small recording of every RAG type with its defaults."""
+    return record_presets(DOCUMENTS, QUESTIONS, PRESET_CHUNKING, MoodyLLM(), FakeEmbedder())
 
 
 def without_replies(presets):
@@ -104,7 +102,7 @@ def test_info_draws_every_rag_type_and_offers_the_knobs(presets):
     assert expand == ["retrieve", "rerank", "expand", "generate"]
     assert info["rerankers"] == ["keyword", "none", "mmr", "llm"]
     assert info["defaults"] == default_tuning() and info["parent_sizes"] == [1500]
-    assert info["rag_types"] == ["simple", "adaptive"]       # what is recorded
+    assert info["rag_types"] == ["simple", "adaptive", "parent_child"]
 
 
 @pytest.mark.parametrize("tuning, message", [
@@ -138,3 +136,28 @@ def test_live_mode_builds_parents_for_parent_child(presets):
                           model="fake", embed_model="fake-embed")
     run = live.run("word", "parent_child", "how many leave days")
     assert [s["step"] for s in run["steps"]] == ["retrieve", "rerank", "expand", "generate"]
+
+
+GRID = {"simple": {"top_k": [1, 5], "reranker": ["keyword", "none"]},
+        "parent_child": {"parent_size": [1500, 60], "parent_budget": [100, 3000]}}
+
+
+def test_grid_tunings_are_one_knob_at_a_time():
+    labels = [label for label, _ in grid_tunings("simple", GRID, "keyword")]
+    assert labels == ["default", "top_k=1", "reranker=none"]       # defaults are not repeated
+    assert grid_tunings("adaptive", GRID, "keyword") == [("default", None)]
+
+
+def test_a_recorded_grid_replays_every_knob_value():
+    presets = record_presets(DOCUMENTS, QUESTIONS, PRESET_CHUNKING, MoodyLLM(), FakeEmbedder(),
+                             grid=GRID)
+    playground = Playground(presets)
+
+    assert presets["parent_sizes"] == [1500, 60] and presets["grid"] == GRID
+    assert set(presets["expected"]["word"]["dense"]["parent_child"]) == {
+        "default", "parent_size=60", "parent_budget=100"}
+    for tuning in ({"top_k": 1}, {"reranker": "none"}):
+        assert playground.run("word", "simple", "q1", "hybrid", tuning)["recorded"]
+    small = playground.run("word", "parent_child", "q1", tuning={"parent_size": 60})
+    assert small["recorded"] and small["steps"][2]["step"] == "expand"
+    assert check_presets(presets) == []

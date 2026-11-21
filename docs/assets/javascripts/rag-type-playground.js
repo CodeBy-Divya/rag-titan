@@ -35,16 +35,11 @@
   function slider([key, label, min, max, step, help], value, recorded) {
     const input = Object.assign(el("input"), { type: "range", min, max, step, value });
     const shown = el("b", "rt-value");
-    const mark = el("span", "rt-recorded");
     const box = el("label", "rt-control");
-    const update = () => {
-      shown.textContent = input.value;
-      const yes = !recorded || recorded.includes(Number(input.value));
-      mark.textContent = recorded ? (yes ? "● answers recorded" : "○ search only") : "";
-    };
+    const update = () => { shown.textContent = input.value; };
     input.addEventListener("input", update);
     update();
-    box.append(el("span", "rt-name", label), input, shown, mark,
+    box.append(el("span", "rt-name", label), input, shown,
       el("span", "rt-help", `${help}. Default ${value}`
         + (recorded ? `; answers recorded for ${recorded.join(" · ")}` : "")));
     return { key, box, input, update, value: () => Number(input.value),
@@ -83,9 +78,14 @@
     };
     const setup = () => [chunker.value(), ragType, question.value(), retriever.value(), tuning()];
     const result = el("div", "rt-result"), code = el("pre", "rt-code"), report = el("div");
+    const indicator = el("p", "rt-indicator");
+    const knobDefaults = { ...defaults, reranker: info.reranker };
     // a knob changed: the old report no longer fits, so it goes
-    const rerun = debounce(() => { report.replaceChildren();
-                                   runOnce(info, setup(), result, code); }, 300);
+    const rerun = debounce(() => {
+      report.replaceChildren();
+      indicator.textContent = recordedText(tuning(), knobDefaults, grid);
+      runOnce(info, setup(), result, code);
+    }, 300);
 
     const topK = sliders.find((s) => s.key === "top_k"), topN = sliders.find((s) => s.key === "top_n");
     // top_n can never be more than top_k: move it down with top_k
@@ -108,7 +108,7 @@
 
     const panel = el("div", "rt-panel");
     panel.append(...[question, chunker, parentSize, retriever, reranker].filter(Boolean).map((c) => c.box),
-                 ...sliders.map((s) => s.box));
+                 ...sliders.map((s) => s.box), indicator);
     app.append(documentsBox(info.documents), panel, reset, result, evaluate, report,
                el("p", "rp-label", "The same setup in Python"), code);
     status.textContent = `Ready: real ${info.model} replies and ${info.embed_model} vectors, `
@@ -155,6 +155,18 @@
     return ["from rag_titan import RAGTitan", "", `rag = RAGTitan(rag_type="${type}", settings={`,
             ...body, "})", "rag.index([\"leave_policy.md\", \"remote_work.md\", \"expenses.md\"])",
             "print(rag.run(\"your question\")[\"log\"])"].join("\n");
+  }
+
+  // Answers were recorded with the defaults, and with one knob at a time on a listed value.
+  function recordedText(values, defaults, grid) {
+    const changed = Object.keys(values).filter((k) => String(values[k]) !== String(defaults[k]));
+    const one = changed.length === 1 && (grid[changed[0]] || []).map(String)
+      .includes(String(values[changed[0]]));
+    if (!changed.length || one) {
+      return "● Answers recorded for these settings: the real model reply replays.";
+    }
+    return `○ ${changed.join(" and ")} changed: search and reranking run live, the answer `
+      + "was recorded only with one knob at a time on a listed value.";
   }
 
   function debounce(fn, ms) {

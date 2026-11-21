@@ -24,10 +24,15 @@ class Playground:
 
     Args:
         presets: the dict saved by tools/playground/record_traces.py.
+        make_parts: optional, make_parts(chunking, parent_size) -> indexed parts.
+            By default the recording is replayed; the recorder passes parts with
+            the real (recording) model, so recording and replay run the same code.
     """
 
-    def __init__(self, presets):
+    def __init__(self, presets, make_parts=None):
         self.presets = presets
+        self.make_parts = make_parts or (lambda chunking, parent_size: replay_parts(
+            presets, chunking, parent_size=parent_size))
         self.parts = {}       # one index per (chunking, parent size), built when first used
         self.searchers = {}   # those parts with each retriever
 
@@ -113,7 +118,7 @@ class Playground:
                              f"{list(self.presets['settings'])}")
         index = (chunking, parent_size)
         if index not in self.parts:
-            self.parts[index] = replay_parts(self.presets, chunking, parent_size=parent_size)
+            self.parts[index] = self.make_parts(chunking, parent_size)
         if (index, retriever) not in self.searchers:
             self.searchers[(index, retriever)] = with_retriever(self.parts[index], retriever)
         return self.searchers[(index, retriever)]

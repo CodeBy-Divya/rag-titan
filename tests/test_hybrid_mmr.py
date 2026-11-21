@@ -161,3 +161,10 @@ def test_equal_rrf_scores_go_to_the_stronger_evidence():
 
     assert [chunk["id"] for chunk, _ in fused] == ["account", "vpn"]
     assert fused[0][1]["rrf"] == pytest.approx(fused[1][1]["rrf"])
+
+
+def test_mmr_scores_are_plain_floats_for_json():
+    import json
+    picked = MMRReranker(HashEmbedder(64), lambda_=0.5).rerank("leave", matches(), top_n=3)
+    assert all(type(m["rerank_score"]) is float for m in picked)
+    json.dumps([m["rerank_score"] for m in picked])

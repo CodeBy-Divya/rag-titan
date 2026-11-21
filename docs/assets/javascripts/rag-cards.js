@@ -68,8 +68,10 @@ const RagCards = (() => {
     });
     // after the run, open the search step: the fused ranks for hybrid, else the one search
     // (or the step where a run past the recording stopped)
-    const search = flow.nodes.some((node) => node.id === "fuse") ? "fuse" : "retrieve";
-    const open = run.stopped_at || search;
+    const has = (id) => flow.nodes.some((node) => node.id === id);
+    const search = has("fuse") ? "fuse" : "retrieve";
+    // Parent-Child RAG: its own step, the expansion to parents, says the most
+    const open = run.stopped_at || (has("expand") ? "expand" : search);
     return { box, play: (delay) => diagram.play(run.steps, delay || 650)
       .then(() => diagram.select(open)) };
   }

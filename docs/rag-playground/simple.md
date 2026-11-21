@@ -16,6 +16,27 @@ in the order they ran; **click a step** to see what went in and what came out.
 
 <div id="rag-type-app" data-rag-type="simple"><p><em>The playground needs JavaScript.</em></p></div>
 
+## Things to try
+
+Every result below is a real recorded run you can repeat with the knobs.
+
+1. **Two files, two chunks.** Pick *What do I get for working from home: equipment
+   and money for furniture?* (chunker `paragraph`, retriever `dense`). With
+   `top_n` 2 only `remote_work.md` reaches the model: it lists the laptop, monitor
+   and headset, and even says *"They do not provide money for furniture"*, because
+   the expenses file never reached it (half the evidence). Set `top_n` to **3**:
+   `expenses.md` comes in and the answer adds the 300 euros for a desk and chair.
+2. **Let the model choose the chunks.** Same question, `top_n` back to 2, reranker
+   **`llm`**. Click *Rerank*: the model rates a `remote_work.md` chunk and an
+   `expenses.md` chunk 10/10 each, so both files reach the model with only two
+   chunks, and all the evidence is found.
+3. **Variety is not relevance.** Chunker `word`, retriever `hybrid`, same question.
+   With reranker **`mmr`** the second chunk is a different one, a
+   `leave_policy.md` chunk about the doctor's note, and the model answers *"I
+   don't know"*. With **`llm`** both right files reach it and it answers.
+4. **Too little context.** Chunker `word`, retriever `dense`, same question,
+   `top_n` **1**: one chunk is not enough and the model says it does not know.
+
 ## The knobs
 
 | Knob | Setting | What it changes |
@@ -35,10 +56,13 @@ value, with the real rag-titan code. The model's answers are **real replies**
 (`gemma3:4b`), recorded once and replayed. A reply exists only for the exact
 prompt that was recorded, so:
 
-- a slider position marked **● answers recorded** replays the real answer;
-- at any other position the run stops at *Generate answer*, drawn dashed, and
-  shows **exactly what the model would read**, with its evidence score. Run that
-  setup in Python (the code below the result) for the real answer.
+- answers were recorded with the **defaults**, and with **one knob at a time** on
+  the values listed under it (for example `top_k` 3 · 5 · 8). The line under the
+  knobs says **● Answers recorded** when the real reply replays;
+- change two knobs, or pick an unlisted value, and the run stops at *Generate
+  answer*, drawn dashed, and shows **exactly what the model would read**, with its
+  evidence score. Run that setup in Python (the code below the result) for the
+  real answer.
 
 The `cross_encoder` reranker needs PyTorch, which cannot run in a browser: try it in
 Python with `pip install "rag-titan[rerank]"`. See also the

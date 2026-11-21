@@ -20,6 +20,35 @@ model is given.
 
 <div id="rag-type-app" data-rag-type="parent_child"><p><em>The playground needs JavaScript.</em></p></div>
 
+## Things to try
+
+Every result below is a real recorded run you can repeat with the knobs. The
+sample policies have short sections (130 to 300 characters), so here a matched
+child usually holds the fact already and its section adds the rest around it; the
+[Parent-Child example](../rag-types.md) shows a longer document where only the
+section holds the answer.
+
+1. **See the expansion.** Chunker `word`, question *When do I need a note from the
+   doctor?*, then click **Expand to parents**: the 4 children found become 4
+   sections, each with the child that led to it and its length; the *Sick leave*
+   section (178 characters) is the one the model answers from.
+2. **Two files with the defaults.** Question *What do I get for working from home:
+   equipment and money for furniture?*, chunker `paragraph`, retriever **`bm25`**.
+   The 4 children come from 4 sections, the *Home office* section of
+   `expenses.md` among them, and all fit in the 3000-character budget: the answer
+   has the laptop, monitor and headset **and** the 300 euros. Simple RAG with its
+   defaults gets only `remote_work.md` for this question, partly because it keeps
+   2 chunks where Parent-Child keeps 4.
+3. **The budget trade-off.** Same setup, **parent budget 600**: the first three
+   sections (171 + 173 + 180 = 524 characters) fit, the *Home office* section would
+   pass 600, so it is left out and the model says it does not know. At **300** only
+   one section is left. Whole sections cost prompt space: the budget decides how
+   many fit.
+4. **Smaller parents.** Same setup, **parent size 200**: the *Leave policy* intro
+   splits into two parents, the search finds a different set of children, the
+   *Home office* section is no longer among them, and the answer covers only the
+   equipment.
+
 ## The knobs
 
 | Knob | Setting | What it changes |
@@ -40,7 +69,8 @@ budget is used up.
 
 Search, reranking and the expansion to parents run **live** in your browser with
 the real rag-titan code; the model's answers (`gemma3:4b`) were recorded once and
-are replayed. Positions marked **● answers recorded** replay real answers;
-elsewhere the run stops at *Generate answer*, drawn dashed, and shows exactly the
-sections the model would read. The code below the result builds the same setup in
+are replayed. Answers were recorded with the defaults and with one knob at a time
+on the values listed under it (parent size 1500 or 200); the line under the knobs
+says **● Answers recorded** when they replay. Elsewhere the run stops at *Generate
+answer*, drawn dashed, and shows exactly the sections the model would read. The code below the result builds the same setup in
 Python. The [Compare page](../rag-playground.md) runs several RAG types side by side.
