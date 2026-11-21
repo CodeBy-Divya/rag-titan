@@ -14,6 +14,7 @@ import itertools
 from pathlib import Path
 
 from rag_titan.app import RAGTitan
+from rag_titan.cli_options import add_tuning_options, tuning_settings
 from rag_titan.evaluation import (
     compare_setups,
     evaluate_file,
@@ -45,7 +46,7 @@ def add_evaluate_command(commands):
     evaluate.add_argument("--retrieval-only", action="store_true",
                           help="score search only (fast, no LLM); "
                                "--rag-type and --reranker are ignored")
-    evaluate.add_argument("--top-k", type=int, default=5, help="chunks per search (retrieval only)")
+    add_tuning_options(evaluate)       # --top-k, --top-n, ... for every setup
     add_data_options(evaluate)
 
 
@@ -62,8 +63,8 @@ def add_data_options(evaluate):
 
 
 def setup_settings(args, chunker, retriever, reranker=None):
-    """The settings one setup changes: chunker, retriever, reranker, chunk size/overlap."""
-    settings = {"chunker": chunker} if chunker else {}
+    """The settings one setup changes: chunker, retriever, reranker, sizes and tuning."""
+    settings = {**tuning_settings(args), **({"chunker": chunker} if chunker else {})}
     if retriever:
         settings["retriever"] = retriever
     if reranker:
@@ -124,7 +125,7 @@ def run_retrieval_only(args, questions):
         rag = RAGTitan(settings=settings)
         rag.index(args.files)
         name = " + ".join(part for part in (chunker, retriever) if part)
-        results.append(evaluate_retriever(rag.parts["retriever"], questions, args.top_k,
+        results.append(evaluate_retriever(rag.parts["retriever"], questions, args.top_k or 5,
                                           name=name or rag.settings["retriever"]))
     return results
 

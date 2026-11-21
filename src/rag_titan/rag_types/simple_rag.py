@@ -3,7 +3,7 @@ Simple RAG:
     Question -> Retrieve -> Rerank -> Generate
 """
 
-from rag_titan.rag_types.base_rag import BaseRAG
+from rag_titan.rag_types.base_rag import BaseRAG, check_search_sizes
 from rag_titan.rag_types.trace import Trace
 from rag_titan.utils.logger import get_logger
 
@@ -31,7 +31,11 @@ class SimpleRAG(BaseRAG):
         "edges": [["retrieve", "rerank"], ["rerank", "generate"]],
     }
 
-    def __init__(self, retriever, reranker, generator, top_k=5, top_n=2):
+    # chunks searched and kept when TOP_K / TOP_N are not set
+    DEFAULT_TOP_K, DEFAULT_TOP_N = 5, 2
+
+    def __init__(self, retriever, reranker, generator, top_k=DEFAULT_TOP_K, top_n=DEFAULT_TOP_N):
+        check_search_sizes(top_k, top_n)
         self.retriever = retriever
         self.reranker = reranker
         self.generator = generator

@@ -13,7 +13,7 @@ The handbook's warning, "watch token inflation", is handled by parent_budget:
 parents are added best first until the budget (in characters) is used up.
 """
 
-from rag_titan.rag_types.base_rag import BaseRAG
+from rag_titan.rag_types.base_rag import BaseRAG, check_count, check_search_sizes
 from rag_titan.rag_types.trace import Trace
 from rag_titan.utils.logger import get_logger
 
@@ -47,10 +47,13 @@ class ParentChildRAG(BaseRAG):
         "edges": [["retrieve", "rerank"], ["rerank", "expand"], ["expand", "generate"]],
     }
 
-    def __init__(self, retriever, reranker, generator, top_k=8, top_n=4, parent_budget=3000):
-        for name, value in [("top_k", top_k), ("top_n", top_n), ("parent_budget", parent_budget)]:
-            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
-                raise ValueError(f"{name} must be a whole number above 0, got {value!r}")
+    # small children: search more of them (TOP_K / TOP_N change these)
+    DEFAULT_TOP_K, DEFAULT_TOP_N = 8, 4
+
+    def __init__(self, retriever, reranker, generator, top_k=DEFAULT_TOP_K,
+                 top_n=DEFAULT_TOP_N, parent_budget=3000):
+        check_search_sizes(top_k, top_n)
+        check_count("parent_budget", parent_budget)
         self.retriever = retriever
         self.reranker = reranker
         self.generator = generator

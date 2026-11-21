@@ -32,7 +32,9 @@ from rag_titan.factory import (
 from rag_titan.prompts import NO_ANSWER
 
 # settings that only change how an index is searched, not what is in it
-SEARCH_ONLY = ("retriever", "reranker")
+# settings that change how the chunks are searched and used, not the chunks themselves
+SEARCH_ONLY = ("retriever", "reranker", "rerank_model", "top_k", "top_n",
+               "adaptive_max_attempts", "parent_budget")
 
 # replies that mean "no answer was given"
 NOT_ANSWERED = {NO_ANSWER, "Please enter a question.", "Please index your documents first."}
@@ -169,7 +171,8 @@ def _indexed_parts(files, overrides, indexes, rag_type=None):
     pipeline = indexes[key]["pipeline"]
     return {**indexes[key],
             "retriever": build_retriever(settings, pipeline.embedder, pipeline.store),
-            "reranker": build_reranker(settings, indexes[key]["llm"], pipeline.embedder)}
+            "reranker": build_reranker(settings, indexes[key]["llm"], pipeline.embedder),
+            "settings": settings}
 
 
 def _check_setups(setups):

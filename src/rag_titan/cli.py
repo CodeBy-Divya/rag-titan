@@ -7,6 +7,8 @@ Examples:
     rag-titan ask --question "How many leave days?" --vector-store sqlite   # ... ask later
     rag-titan ask --files handbook.pdf --question "How many leave days?" --trace
     rag-titan chat --files handbook.pdf policy.docx --rag-type adaptive
+    rag-titan ask --files handbook.pdf --question "..." --rag-type parent_child \\
+        --top-k 10 --top-n 4 --parent-budget 2000 --reranker llm
     rag-titan evaluate --files *.md --questions questions.json \\
         --rag-type simple adaptive --chunker word paragraph --retriever dense hybrid
     rag-titan evaluate --input data.json --output report.json --baseline last_report.json
@@ -20,7 +22,8 @@ from rag_titan import __version__
 from rag_titan.cli_evaluate import add_evaluate_command, build_setups, run_evaluate  # noqa: F401
 from rag_titan.cli_golden import add_golden_command, run_golden
 from rag_titan.cli_index import add_index_command, add_store_options, prepare_rag, run_index
-from rag_titan.factory import RAG_TYPES, RETRIEVERS
+from rag_titan.cli_options import add_tuning_options
+from rag_titan.factory import RAG_TYPES, RERANKERS, RETRIEVERS
 from rag_titan.utils.logger import setup_logging
 
 
@@ -43,7 +46,10 @@ def build_parser():
         command.add_argument("--rag-type", default="simple", choices=RAG_TYPES)
         command.add_argument("--retriever", choices=RETRIEVERS,
                              help="dense, bm25 or hybrid (default: RETRIEVER)")
+        command.add_argument("--reranker", choices=RERANKERS,
+                             help="keyword, none, mmr, llm or cross_encoder (default: RERANKER)")
         add_store_options(command)
+        add_tuning_options(command)
 
     ask.add_argument("--question", required=True, help="the question to answer")
     ask.add_argument("--trace", action="store_true", help="also print every step taken")
