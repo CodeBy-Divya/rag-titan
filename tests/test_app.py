@@ -22,7 +22,7 @@ def titan(parts, monkeypatch):
     llm = FakeLLM(["20 leave days [chunk_0]"])
     fake = {**parts, "llm": llm, "generator": GroundedGenerator(llm),
             "pipeline": IndexingPipeline(parts["chunker"], parts["embedder"], parts["store"])}
-    monkeypatch.setattr(app, "build_rag_parts", lambda settings: fake)
+    monkeypatch.setattr(app, "build_rag_parts", lambda settings, rag_type=None: fake)
     return RAGTitan(rag_type="simple")
 
 

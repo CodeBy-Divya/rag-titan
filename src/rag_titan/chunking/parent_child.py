@@ -12,7 +12,8 @@ whole section around the match. Each child carries its parent:
 
     {"id": "chunk_4", "source": "leave.md", "text": "Sick leave needs a note ...",
      "parent_id": "leave.md#parent_1",
-     "parent_text": "Leave policy > Sick leave\n\nTell your manager ... a note ..."}
+     "parent_text": "Leave policy > Sick leave\n\nTell your manager ... a note ...",
+     "parent_start_offset": 120, "parent_end_offset": 410}
 
 Stores save the whole chunk, so the parent is saved (and replaced by
 `index --add`) together with its children, in every store.
@@ -62,8 +63,8 @@ class ParentChildChunker(BaseChunker):
             documents: list of {"source": ..., "text": ...} dicts.
 
         Returns:
-            The child chunks, like BaseChunker.chunk() returns them, plus
-            "parent_id" and "parent_text". Offsets point into the document.
+            The child chunks, like BaseChunker.chunk() returns them, plus the
+            parent fields (see describe_parent). Offsets point into the document.
         """
         chunks = []
 
@@ -74,7 +75,7 @@ class ParentChildChunker(BaseChunker):
 
             for number, (parent_text, start, end) in enumerate(parents):
                 # the file name keeps ids unique when two files share a section title
-                parent_id = f"{source}#parent_{number}"
+                parent = self.describe_parent(source, number, parent_text, start, end, locations)
                 for child, first, last in self.child_spans(text, start, end, parent_text):
                     chunks.append({
                         "id": f"chunk_{len(chunks)}",
@@ -83,11 +84,28 @@ class ParentChildChunker(BaseChunker):
                         "start_offset": first,
                         "end_offset": last,
                         **locations.describe(first, last),
-                        "parent_id": parent_id,
-                        "parent_text": parent_text,
+                        **parent,
                     })
 
         return chunks
+
+    def describe_parent(self, source, number, parent_text, start, end, locations):
+        """
+        The parent fields every child of this parent carries.
+
+        Returns:
+            {"parent_id": "leave.md#parent_1", "parent_text": ...,
+             "parent_start_offset": 120, "parent_end_offset": 410}, plus
+            "parent_page_numbers" for documents with pages. The RAG type uses
+            them to hand the model the parent, with its own place in the file.
+        """
+        # the file name keeps ids unique when two files share a section title
+        parent = {"parent_id": f"{source}#parent_{number}", "parent_text": parent_text,
+                  "parent_start_offset": start, "parent_end_offset": end}
+        pages = locations.describe(start, end).get("page_numbers")
+        if pages:
+            parent["parent_page_numbers"] = pages
+        return parent
 
     def child_spans(self, text, start, end, parent_text):
         """

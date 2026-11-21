@@ -31,7 +31,7 @@ class RAGTitan:
     One object that can index files and answer questions about them.
 
     Args:
-        rag_type: which RAG to use, "simple" or "adaptive".
+        rag_type: which RAG to use: "simple", "adaptive" or "parent_child".
         settings: optional dict of settings to change, for example
             {"llm_model": "llama3.2"}. Anything missing uses the
             value from the environment or the default.
@@ -42,7 +42,8 @@ class RAGTitan:
         self.rag_type = rag_type
 
         # build all the parts once, they share one embedder and one store
-        self.parts = build_rag_parts(self.settings)
+        # parent_child indexes its own way (small chunks inside sections)
+        self.parts = build_rag_parts(self.settings, rag_type)
         self.pipeline = self.parts["pipeline"]
         self.rag = build_rag(rag_type, self.parts)
 

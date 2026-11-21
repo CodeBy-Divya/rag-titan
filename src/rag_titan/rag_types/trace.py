@@ -104,7 +104,10 @@ def _describe_chunks(chunks):
     for chunk in chunks[:4]:
         # "chunk_8 remote_work.md": the file tells a reader more than the id
         name = f"{chunk['id']} {chunk['source']}" if chunk.get("source") else chunk["id"]
-        if "rerank_score" in chunk:
+        if "children" in chunk:
+            # a parent section (Parent-Child RAG): name it and count what it holds
+            parts.append(f"{chunk['parent_id']} ({_children(chunk)}, {len(chunk['text'])} chars)")
+        elif "rerank_score" in chunk:
             parts.append(f"{name} (rerank {chunk['rerank_score']:.3f})")
         elif "score" in chunk:
             parts.append(f"{name} ({chunk['score']:.3f})")
@@ -118,3 +121,9 @@ def _describe_chunks(chunks):
 def _count(chunks):
     """Return "1 chunk" or "3 chunks"."""
     return "1 chunk" if len(chunks) == 1 else f"{len(chunks)} chunks"
+
+
+def _children(parent):
+    """Return "1 child" or "2 children"."""
+    count = len(parent["children"])
+    return "1 child" if count == 1 else f"{count} children"

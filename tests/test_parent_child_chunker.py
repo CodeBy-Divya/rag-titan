@@ -44,6 +44,21 @@ def test_child_offsets_point_into_the_document():
         assert piece.split() == chunk["text"].split()
 
 
+def test_parent_offsets_point_at_the_section_in_the_document():
+    for chunk in children([{"source": "leave.md", "text": LEAVE}]):
+        section = LEAVE[chunk["parent_start_offset"]:chunk["parent_end_offset"]]
+        assert chunk["parent_text"].endswith(section.strip())
+        assert chunk["parent_start_offset"] <= chunk["start_offset"]
+        assert chunk["end_offset"] <= chunk["parent_end_offset"]
+
+
+def test_pdf_parents_know_their_pages():
+    text = "Leave rules start here.\n\nMore leave rules.\fPage two goes on."
+    chunks = children([{"source": "hr.pdf", "text": text}], words=4, overlap=0)
+    assert chunks[0]["parent_page_numbers"] == [1, 2]
+    assert chunks[0]["page_numbers"] == [1]
+
+
 def test_ids_are_unique_across_files_with_the_same_section_title():
     chunks = children([{"source": "leave.md", "text": LEAVE},
                        {"source": "travel.md", "text": TRAVEL}])

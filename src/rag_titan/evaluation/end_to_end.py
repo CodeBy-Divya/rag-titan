@@ -22,7 +22,13 @@ from rag_titan.config import get_settings
 from rag_titan.evaluation.benchmark import format_table, summarize_rows
 from rag_titan.evaluation.metrics import ndcg_at_k, recall_at_k, reciprocal_rank
 from rag_titan.evaluation.questions import as_questions
-from rag_titan.factory import build_rag, build_rag_parts, build_reranker, build_retriever
+from rag_titan.factory import (
+    PARENT_RAG_TYPES,
+    build_rag,
+    build_rag_parts,
+    build_reranker,
+    build_retriever,
+)
 from rag_titan.prompts import NO_ANSWER
 
 # settings that only change how an index is searched, not what is in it
@@ -96,7 +102,7 @@ def compare_setups(files, questions, setups):
     indexes = {}
     results = []
     for setup in setups:
-        parts = _indexed_parts(files, setup.get("settings") or {}, indexes)
+        parts = _indexed_parts(files, setup.get("settings") or {}, indexes, setup["rag_type"])
         rag = build_rag(setup["rag_type"], parts)
 
         result = evaluate_rag(rag, questions, name=setup["name"])
@@ -140,16 +146,22 @@ def _run_question(rag, question):
     }
 
 
-def _indexed_parts(files, overrides, indexes):
-    """Return built and indexed parts, reusing them when the settings are the same."""
+def _indexed_parts(files, overrides, indexes, rag_type=None):
+    """
+    Return built and indexed parts, reusing them when the settings are the same.
+
+    A RAG type that needs parents (parent_child) gets an index of its own, so
+    the chunks of the other setups stay exactly as they were.
+    """
     # always a temporary in-memory index: comparing setups must never replace
     # (or mix several setups into) an index saved with VECTOR_STORE=sqlite
     settings = get_settings({**overrides, "vector_store": "memory"})
     ingestion = {key: value for key, value in settings.items() if key not in SEARCH_ONLY}
+    ingestion["parents"] = rag_type in PARENT_RAG_TYPES
     key = json.dumps(ingestion, sort_keys=True, default=str)
 
     if key not in indexes:
-        parts = build_rag_parts(settings)
+        parts = build_rag_parts(settings, rag_type)
         parts["pipeline"].run(files)
         indexes[key] = parts
 

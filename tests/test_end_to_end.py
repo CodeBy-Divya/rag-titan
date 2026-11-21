@@ -52,7 +52,7 @@ def builds(monkeypatch):
     """Replace build_rag_parts with fakes and count how often an index is built."""
     calls = []
 
-    def fake_build(settings):
+    def fake_build(settings, rag_type=None):
         calls.append(settings["chunk_size"])
         llm, embedder, store = PromptLLM(), FakeEmbedder(), MemoryStore()
         chunker = WordChunker(settings["chunk_size"], 0)

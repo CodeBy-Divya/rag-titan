@@ -12,7 +12,6 @@ build their RAG types with build_parts(), so a replay is the same code as the re
 from rag_titan.config import get_settings
 from rag_titan.embeddings.replay_embedder import RecordingEmbedder, ReplayEmbedder
 from rag_titan.factory import (
-    RAG_TYPES,
     RETRIEVERS,
     build_chunker,
     build_generator,
@@ -22,6 +21,9 @@ from rag_titan.factory import (
 )
 from rag_titan.llm.replay_llm import RecordingLLM, ReplayLLM
 from rag_titan.vector_stores.memory_store import MemoryStore
+
+# the RAG types recorded for the playground (parent_child joins when it is recorded)
+PRESET_RAG_TYPES = ["simple", "adaptive"]
 
 # the ingestion choices offered in the playground
 PRESET_CHUNKING = {
@@ -99,7 +101,7 @@ def record_presets(documents, questions, chunking, llm, embedder):
     """
     llm, embedder = RecordingLLM(llm), RecordingEmbedder(embedder)
     presets = {"model": llm.model, "embed_model": embedder.model, "documents": documents,
-               "questions": questions, "rag_types": list(RAG_TYPES),
+               "questions": questions, "rag_types": list(PRESET_RAG_TYPES),
                "retrievers": list(RETRIEVERS),
                "settings": {name: preset_settings(o) for name, o in chunking.items()},
                "expected": {}}
@@ -108,7 +110,7 @@ def record_presets(documents, questions, chunking, llm, embedder):
         parts = build_parts(settings, embedder, llm)
         index_documents(parts, documents)          # one index, searched by every retriever
         presets["expected"][name] = {retriever: _run_all(with_retriever(parts, retriever),
-                                                         questions)
+                                                         questions, PRESET_RAG_TYPES)
                                      for retriever in RETRIEVERS}
 
     presets["replies"], presets["vectors"] = llm.replies, embedder.vectors
@@ -132,7 +134,8 @@ def check_presets(presets):
     for name, by_retriever in presets["expected"].items():
         parts = replay_parts(presets, name)
         for retriever, expected in by_retriever.items():
-            replayed = _run_all(with_retriever(parts, retriever), presets["questions"])
+            replayed = _run_all(with_retriever(parts, retriever), presets["questions"],
+                                presets["rag_types"])
             for rag_type, runs in expected.items():
                 for question_id, run in runs.items():
                     again = replayed.get(rag_type, {}).get(question_id)
@@ -143,10 +146,10 @@ def check_presets(presets):
     return problems
 
 
-def _run_all(parts, questions):
+def _run_all(parts, questions, rag_types):
     """{rag_type: {question id: summarize_run(...)}} for every RAG type and question."""
     runs = {}
-    for rag_type in RAG_TYPES:
+    for rag_type in rag_types:
         rag = build_rag(rag_type, parts)
         runs[rag_type] = {q["id"]: summarize_run(rag.run(q["question"])) for q in questions}
     return runs
