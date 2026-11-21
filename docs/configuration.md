@@ -43,6 +43,7 @@ cp .env.example .env
 | `ADAPTIVE_MAX_ATTEMPTS` | `adaptive_max_attempts` | `2`          | `adaptive`: searches before giving up      |
 | `PARENT_BUDGET`   | `parent_budget`   | `3000`                   | `parent_child`: most characters of parent text given to the model |
 | `HYDE_WITH_QUESTION` | `hyde_with_question` | `true`             | `hyde`: also search with the question and fuse it with the made-up answer's search |
+| `FUSION_QUERIES`  | `fusion_queries`  | `3`                      | `rag_fusion`: rewordings of the question to search with (1 to 10) |
 | `GENERATOR`       | `generator`       | `grounded`               | How answers are written                        |
 | `LOG_LEVEL`       | –                 | `INFO`                   | Used by `setup_logging()`                      |
 

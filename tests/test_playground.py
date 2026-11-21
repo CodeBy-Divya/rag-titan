@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from conftest import FakeEmbedder
 
+from rag_titan.factory import RAG_TYPES
 from rag_titan.llm import BaseLLM, RecordingLLM
 from rag_titan.playground import (
     PRESET_CHUNKING,
@@ -73,8 +74,7 @@ def test_a_recording_replays_the_same_even_with_a_moody_model():
 
     assert set(presets["expected"]) == set(PRESET_CHUNKING)
     assert set(presets["expected"]["word"]) == {"dense", "bm25", "hybrid"}
-    assert set(presets["expected"]["word"]["hybrid"]) == {"simple", "adaptive", "parent_child",
-                                                          "hyde"}
+    assert set(presets["expected"]["word"]["hybrid"]) == set(RAG_TYPES)   # every type
     assert set(presets["expected"]["word"]["hybrid"]["parent_child"]) == {"default"}
     assert check_presets(json.loads(json.dumps(presets))) == []   # survives a JSON round trip
 

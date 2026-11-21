@@ -8,23 +8,25 @@ build_rag() and its own options in rag_options().
 from rag_titan.rag_types.adaptive.adaptive_rag import AdaptiveRAG
 from rag_titan.rag_types.hyde_rag import HyDERAG
 from rag_titan.rag_types.parent_child_rag import ParentChildRAG
+from rag_titan.rag_types.rag_fusion_rag import RAGFusionRAG
 from rag_titan.rag_types.simple_rag import SimpleRAG
 
 # every RAG type the package can build, used by build_rag() and the CLI
-RAG_TYPES = ["simple", "adaptive", "parent_child", "hyde"]
+RAG_TYPES = ["simple", "adaptive", "parent_child", "hyde", "rag_fusion"]
 
 # RAG types that need an index built with parent sections (see chunking/parent_child.py)
 PARENT_RAG_TYPES = ["parent_child"]
 
 # the class of each RAG type (its DEFAULT_TOP_K / DEFAULT_TOP_N are the defaults)
 CLASSES = {"simple": SimpleRAG, "adaptive": AdaptiveRAG, "parent_child": ParentChildRAG,
-           "hyde": HyDERAG}
+           "hyde": HyDERAG, "rag_fusion": RAGFusionRAG}
 
 # each type's own options, and the setting each one reads
 TYPE_OPTIONS = {
     "adaptive": {"max_attempts": "adaptive_max_attempts"},
     "parent_child": {"parent_budget": "parent_budget"},
     "hyde": {"with_question": "hyde_with_question"},
+    "rag_fusion": {"queries": "fusion_queries"},
 }
 
 
@@ -33,7 +35,7 @@ def rag_options(rag_type, settings):
     The tuning options of one RAG type, read from the settings.
 
     TOP_K and TOP_N work for every type; left empty (None) each type keeps its
-    own default (simple 5/2, adaptive 4/2, parent_child 8/4, hyde 5/2).
+    own default (simple 5/2, adaptive 4/2, parent_child 8/4, hyde and rag_fusion 5/2).
 
     Args:
         rag_type: one of RAG_TYPES.
@@ -82,5 +84,9 @@ def build_rag(rag_type, parts):
     if rag_type == "hyde":
         return HyDERAG(parts["llm"], parts["retriever"], parts["reranker"], parts["generator"],
                        **options)
+
+    if rag_type == "rag_fusion":
+        return RAGFusionRAG(parts["llm"], parts["retriever"], parts["reranker"],
+                            parts["generator"], **options)
 
     raise ValueError(f"Unknown RAG type: {rag_type}. Choose from {RAG_TYPES}")
