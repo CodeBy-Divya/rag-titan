@@ -61,7 +61,7 @@ def test_only_top_k_keeps_top_n_within_it():
 
 def test_class_defaults_are_the_documented_ones():
     sizes = {name: (cls.DEFAULT_TOP_K, cls.DEFAULT_TOP_N) for name, cls in CLASSES.items()}
-    assert sizes == {"simple": (5, 2), "adaptive": (4, 2), "parent_child": (8, 4)}
+    assert sizes == {"simple": (5, 2), "adaptive": (4, 2), "parent_child": (8, 4), "hyde": (5, 2)}
 
 
 def test_build_rag_reads_the_tuning_from_the_parts(parts):
@@ -69,7 +69,8 @@ def test_build_rag_reads_the_tuning_from_the_parts(parts):
                                                 "adaptive_max_attempts": 4,
                                                 "parent_budget": 500})}
 
-    simple, adaptive, parent = (build_rag(name, parts) for name in CLASSES)
+    simple, adaptive, parent = (build_rag(name, parts)
+                                for name in ("simple", "adaptive", "parent_child"))
     assert (simple.top_k, simple.top_n) == (7, 3)
     assert (adaptive.top_k, adaptive.max_attempts) == (7, 4)
     assert (parent.top_k, parent.top_n, parent.parent_budget) == (7, 3, 500)

@@ -7,13 +7,15 @@ Each one wins over its setting in .env, for that command only:
     --max-attempts 3   ADAPTIVE_MAX_ATTEMPTS  adaptive: searches before giving up
     --parent-size 800  PARENT_SIZE            parent_child: largest section (indexing)
     --parent-budget    PARENT_BUDGET          parent_child: characters given to the model
+    --no-hyde-with-question  HYDE_WITH_QUESTION   hyde: search the made-up answer only
 """
 
 import argparse
 
 # option -> the setting it changes
 TUNING = {"top_k": "top_k", "top_n": "top_n", "max_attempts": "adaptive_max_attempts",
-          "parent_size": "parent_size", "parent_budget": "parent_budget"}
+          "parent_size": "parent_size", "parent_budget": "parent_budget",
+          "hyde_with_question": "hyde_with_question"}
 
 
 def positive_int(text):
@@ -53,6 +55,9 @@ def add_tuning_options(command, search=True):
     command.add_argument("--parent-budget", type=positive_int,
                          help="parent_child: most characters of parent text given to the model "
                               "(default: PARENT_BUDGET, 3000)")
+    command.add_argument("--hyde-with-question", action=argparse.BooleanOptionalAction,
+                         help="hyde: also search with the question and fuse the two "
+                              "searches (default: HYDE_WITH_QUESTION, on)")
 
 
 def tuning_settings(args):

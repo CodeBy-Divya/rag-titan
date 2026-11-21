@@ -95,6 +95,10 @@ def _short(value, brief=False):
     if isinstance(value, list) and all(isinstance(item, dict) and "id" in item for item in value):
         return _count(value) if brief else _describe_chunks(value)
 
+    # several result lists by name (fuse_queries): "query_1 8 chunks, query_2 8 chunks"
+    if isinstance(value, dict) and value and all(isinstance(item, list) for item in value.values()):
+        return ", ".join(f"{name} {_count(items)}" for name, items in value.items())
+
     text = repr(value)
     if len(text) > SHORT_TEXT:
         text = text[:SHORT_TEXT - 3] + "..."

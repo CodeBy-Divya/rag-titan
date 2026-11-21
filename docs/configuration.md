@@ -42,6 +42,7 @@ cp .env.example .env
 | `TOP_N`           | `top_n`           | type's own (2 / 2 / 4)   | Chunks kept after reranking; at most `TOP_K` |
 | `ADAPTIVE_MAX_ATTEMPTS` | `adaptive_max_attempts` | `2`          | `adaptive`: searches before giving up      |
 | `PARENT_BUDGET`   | `parent_budget`   | `3000`                   | `parent_child`: most characters of parent text given to the model |
+| `HYDE_WITH_QUESTION` | `hyde_with_question` | `true`             | `hyde`: also search with the question and fuse it with the made-up answer's search |
 | `GENERATOR`       | `generator`       | `grounded`               | How answers are written                        |
 | `LOG_LEVEL`       | –                 | `INFO`                   | Used by `setup_logging()`                      |
 

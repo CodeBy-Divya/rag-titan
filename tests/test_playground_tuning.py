@@ -97,12 +97,12 @@ def test_evaluate_tuned_sums_up_every_question(presets):
 def test_info_draws_every_rag_type_and_offers_the_knobs(presets):
     info = Playground(presets).info()
 
-    assert set(info["flows"]) == {"simple", "adaptive", "parent_child"}
+    assert set(info["flows"]) == {"simple", "adaptive", "parent_child", "hyde"}
     expand = [n["id"] for n in info["flows"]["parent_child"]["dense"]["nodes"]]
     assert expand == ["retrieve", "rerank", "expand", "generate"]
     assert info["rerankers"] == ["keyword", "none", "mmr", "llm"]
     assert info["defaults"] == default_tuning() and info["parent_sizes"] == [1500]
-    assert info["rag_types"] == ["simple", "adaptive", "parent_child"]
+    assert info["rag_types"] == ["simple", "adaptive", "parent_child", "hyde"]
 
 
 @pytest.mark.parametrize("tuning, message", [
