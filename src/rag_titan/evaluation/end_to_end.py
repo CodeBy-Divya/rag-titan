@@ -16,12 +16,15 @@ The evidence is scored on the chunks each RAG type really gave to the LLM
 """
 
 import json
-import time
 
 from rag_titan.config import get_settings
 from rag_titan.evaluation.benchmark import format_table, summarize_rows
-from rag_titan.evaluation.metrics import ndcg_at_k, recall_at_k, reciprocal_rank
 from rag_titan.evaluation.questions import as_questions
+from rag_titan.evaluation.run_scoring import (  # noqa: F401  (NOT_ANSWERED: old import path)
+    NOT_ANSWERED,
+    run_question,
+    score_sources,
+)
 from rag_titan.factory import (
     PARENT_RAG_TYPES,
     build_rag,
@@ -29,15 +32,10 @@ from rag_titan.factory import (
     build_reranker,
     build_retriever,
 )
-from rag_titan.prompts import NO_ANSWER
 
-# settings that only change how an index is searched, not what is in it
 # settings that change how the chunks are searched and used, not the chunks themselves
 SEARCH_ONLY = ("retriever", "reranker", "rerank_model", "top_k", "top_n",
                "adaptive_max_attempts", "parent_budget")
-
-# replies that mean "no answer was given"
-NOT_ANSWERED = {NO_ANSWER, "Please enter a question.", "Please index your documents first."}
 
 RAG_COLUMNS = [
     ("Recall", "recall", "{:.3f}"),
@@ -66,7 +64,7 @@ def evaluate_rag(rag, questions, name=None):
         (each row keeps the answer and every step).
     """
     questions = as_questions(questions)
-    rows = [_run_question(rag, question) for question in questions]
+    rows = [run_question(rag, question) for question in questions]
 
     summary = summarize_rows(rows)
     result = {"name": name or type(rag).__name__}
@@ -123,29 +121,6 @@ def format_rag_report(results):
     title = (f"End-to-end report: {len(results[0]['rows'])} questions "
              "(evidence scored on the chunks given to the LLM)")
     return format_table(title, "setup", results, RAG_COLUMNS)
-
-
-def _run_question(rag, question):
-    """Run one question, time it and score the chunks the LLM was given."""
-    start = time.perf_counter()
-    result = rag.run(question["question"])
-    ms = (time.perf_counter() - start) * 1000
-
-    sources = result["sources"]
-    required = question["required_evidence_ids"]
-    k = max(len(sources), 1)   # score every source; k must be at least 1
-    return {
-        "id": question["id"],
-        "task_type": question.get("task_type"),
-        "answer": result["answer"],
-        "answered": result["answer"].strip() not in NOT_ANSWERED,
-        "recall": recall_at_k(sources, required, k),
-        "reciprocal_rank": reciprocal_rank(sources, required, k),
-        "ndcg": ndcg_at_k(sources, required, k),
-        "ms": ms,
-        "sources": [chunk["source"] for chunk in sources],
-        "steps": result["steps"],
-    }
 
 
 def _indexed_parts(files, overrides, indexes, rag_type=None):

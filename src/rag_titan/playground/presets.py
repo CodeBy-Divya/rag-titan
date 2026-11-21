@@ -9,6 +9,7 @@ The recorder (tools/playground/record_traces.py), the tests and the browser all
 build their RAG types with build_parts(), so a replay is the same code as the recording.
 """
 
+from rag_titan.chunking.parent_child import ParentChildChunker
 from rag_titan.config import get_settings
 from rag_titan.embeddings.replay_embedder import RecordingEmbedder, ReplayEmbedder
 from rag_titan.factory import (
@@ -43,12 +44,21 @@ def preset_settings(overrides):
     return {key: settings[key] for key in PRESET_KEYS}
 
 
-def build_parts(settings, embedder, llm, retriever="dense"):
-    """Build every part of a RAG from preset settings, a model and an embedder."""
+def build_parts(settings, embedder, llm, retriever="dense", parent_size=None):
+    """
+    Build every part of a RAG from preset settings, a model and an embedder.
+
+    Args:
+        parent_size: for Parent-Child RAG, the largest parent in characters;
+            the chunker then makes children inside parents. None: plain chunks.
+    """
     store = MemoryStore()
+    chunker = build_chunker(settings)
+    if parent_size:
+        chunker = ParentChildChunker(chunker, parent_size)
     parts = {
         "llm": llm,
-        "chunker": build_chunker(settings),
+        "chunker": chunker,
         "embedder": embedder,
         "store": store,
         "dedupe_overlap": settings["dedupe_overlap"],
@@ -117,12 +127,17 @@ def record_presets(documents, questions, chunking, llm, embedder):
     return presets
 
 
-def replay_parts(presets, name, retriever="dense"):
-    """Build and index the parts of one preset chunking, answering from the recording."""
+def replay_parts(presets, name, retriever="dense", parent_size=None):
+    """
+    Build and index the parts of one preset chunking, answering from the recording.
+
+    Args:
+        parent_size: index with parents of this size (Parent-Child RAG), or None.
+    """
     llm = ReplayLLM(presets["replies"], model=presets["model"])
     embedder = ReplayEmbedder(presets["vectors"], model=presets["embed_model"])
 
-    parts = build_parts(presets["settings"][name], embedder, llm, retriever)
+    parts = build_parts(presets["settings"][name], embedder, llm, retriever, parent_size)
     index_documents(parts, presets["documents"])
     return parts
 

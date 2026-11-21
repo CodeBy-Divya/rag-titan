@@ -12,9 +12,10 @@ In the browser, `chat` and `embed` call your local Ollama.
 
 import json
 
+from rag_titan.chunking.parent_child import DEFAULT_PARENT_SIZE
 from rag_titan.embeddings.function_embedder import FunctionEmbedder
 from rag_titan.evaluation.end_to_end import NOT_ANSWERED, evaluate_rag
-from rag_titan.factory import build_rag
+from rag_titan.factory import PARENT_RAG_TYPES, build_rag
 from rag_titan.llm.function_llm import FunctionLLM
 from rag_titan.playground.presets import build_parts, index_documents, with_retriever
 
@@ -49,7 +50,10 @@ class LivePlayground:
         if not isinstance(question, str) or not question.strip():
             raise ValueError("Please enter a question")
 
-        rag = build_rag(rag_type, with_retriever(self._parts(chunking, documents), retriever))
+        # Parent-Child RAG needs its own index, with parent sections
+        parent_size = DEFAULT_PARENT_SIZE if rag_type in PARENT_RAG_TYPES else None
+        parts = self._parts(chunking, documents, parent_size)
+        rag = build_rag(rag_type, with_retriever(parts, retriever))
         preset = None if documents else self._preset_question(question)
         if preset:
             row = evaluate_rag(rag, [preset])["rows"][0]
@@ -63,15 +67,16 @@ class LivePlayground:
                 "answered": result["answer"].strip() not in NOT_ANSWERED,
                 "ms": sum(step["ms"] for step in result["steps"])}
 
-    def _parts(self, chunking, documents):
-        """Index the documents with one chunking, the first time they are used."""
+    def _parts(self, chunking, documents, parent_size=None):
+        """Index the documents with one chunking (and parents), the first time they are used."""
         if chunking not in self.presets["settings"]:
             raise ValueError(f"Unknown chunking {chunking!r}")
         documents = _check_documents(documents) if documents else self.presets["documents"]
 
-        key = (chunking, json.dumps(documents, sort_keys=True))
+        key = (chunking, parent_size, json.dumps(documents, sort_keys=True))
         if key not in self.parts:
-            parts = build_parts(self.presets["settings"][chunking], self.embedder, self.llm)
+            parts = build_parts(self.presets["settings"][chunking], self.embedder, self.llm,
+                                parent_size=parent_size)
             if index_documents(parts, documents) == 0:
                 raise ValueError("The documents gave no chunks: add some text")
             self.parts[key] = parts

@@ -49,9 +49,10 @@ class ParentChildRAG(BaseRAG):
 
     # small children: search more of them (TOP_K / TOP_N change these)
     DEFAULT_TOP_K, DEFAULT_TOP_N = 8, 4
+    DEFAULT_PARENT_BUDGET = 3000
 
     def __init__(self, retriever, reranker, generator, top_k=DEFAULT_TOP_K,
-                 top_n=DEFAULT_TOP_N, parent_budget=3000):
+                 top_n=DEFAULT_TOP_N, parent_budget=DEFAULT_PARENT_BUDGET):
         check_search_sizes(top_k, top_n)
         check_count("parent_budget", parent_budget)
         self.retriever = retriever
@@ -61,10 +62,10 @@ class ParentChildRAG(BaseRAG):
         self.top_n = top_n
         self.parent_budget = parent_budget
 
-    def run(self, query):
+    def run(self, query, trace=None):
         """Answer the question from the parents of the best children, recording each step."""
         query = query.strip()
-        trace = Trace()
+        trace = trace if trace is not None else Trace()
 
         if not query:
             return trace.result("Please enter a question.")

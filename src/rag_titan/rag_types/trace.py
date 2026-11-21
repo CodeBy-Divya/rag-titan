@@ -31,7 +31,13 @@ class Trace:
             inputs: the keyword arguments for the function.
         """
         start = time.perf_counter()
-        output = function(**inputs)
+        try:
+            output = function(**inputs)
+        except Exception as error:
+            # keep the step that failed too, so the steps show where a run stopped
+            ms = (time.perf_counter() - start) * 1000
+            self.add(step, inputs, {"error": f"{type(error).__name__}: {error}"}, ms)
+            raise
         ms = (time.perf_counter() - start) * 1000
 
         self.add(step, inputs, output, ms)

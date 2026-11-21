@@ -36,6 +36,7 @@
 .rf-node.rf-visited rect { opacity: 1; }
 .rf-node.rf-current rect { stroke: var(--rf-taken); stroke-width: 3.5; }
 .rf-node:hover rect, .rf-node:focus rect { stroke-width: 3; opacity: 1; }
+.rf-node.rf-failed rect { stroke: var(--rf-loop); stroke-dasharray: 6 4; stroke-width: 3; }
 .rf-label { font: 600 13px system-ui, sans-serif; fill: var(--rf-text); text-anchor: middle; }
 .rf-badge { font: 700 10px ui-monospace, monospace; fill: var(--rf-taken); text-anchor: end; }
 
@@ -87,3 +88,17 @@
 .rp-own { min-height: 6rem; font-family: var(--md-code-font-family, monospace); }
 .rp-help { font-size: 0.72rem; color: var(--rf-muted); }
 #rag-playground-app [hidden] { display: none !important; }   /* the theme's button style would win */
+
+/* one RAG type's playground (rag-type-playground.js): the tuning panel */
+.rt-panel { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+            gap: 0.6rem 1.2rem; margin: 0.6rem 0; padding: 0.6rem 0.8rem; border-radius: 8px;
+            border: 1px solid var(--md-default-fg-color--lightest, #cbd5e1); }
+.rt-control { display: flex; flex-wrap: wrap; align-items: center; gap: 0.2rem 0.5rem; font-size: 0.75rem; }
+.rt-control select { flex: 1 1 100%; }
+.rt-control input[type="range"] { flex: 1 1 8rem; accent-color: var(--rf-taken); }
+.rt-name { flex: 1 1 100%; font-weight: 700; }
+.rt-value { font: 700 0.8rem ui-monospace, monospace; min-width: 2.5rem; }
+.rt-recorded { font-size: 0.68rem; color: var(--rf-muted); }
+.rt-help { flex: 1 1 100%; font-size: 0.68rem; color: var(--rf-muted); }
+.rt-result { margin: 0.6rem 0; }
+.rt-code { font-size: 0.7rem; white-space: pre-wrap; }

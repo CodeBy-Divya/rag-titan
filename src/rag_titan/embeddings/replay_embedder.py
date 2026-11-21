@@ -15,6 +15,7 @@ import hashlib
 import numpy as np
 
 from rag_titan.embeddings.base_embedder import BaseEmbedder
+from rag_titan.utils.not_recorded import NotRecorded
 
 
 def text_key(text):
@@ -68,7 +69,7 @@ class ReplayEmbedder(BaseEmbedder):
         """Return the recorded vector for every text, in the same order."""
         missing = [text for text in texts if text_key(text) not in self.vectors]
         if missing:
-            raise ValueError(
+            raise NotRecorded(
                 f"No recorded vector for {len(missing)} text(s), e.g. {missing[0][:60]!r}. "
                 "The documents, chunker settings or question differ from the recording."
             )

@@ -42,10 +42,10 @@ class SimpleRAG(BaseRAG):
         self.top_k = top_k
         self.top_n = top_n
 
-    def run(self, query):
+    def run(self, query, trace=None):
         """Answer the question from the indexed documents and record each step."""
         query = query.strip()
-        trace = Trace()
+        trace = trace if trace is not None else Trace()
 
         if not query:
             return trace.result("Please enter a question.")

@@ -27,9 +27,14 @@ class BaseRAG:
 
     FLOW = {"nodes": [], "edges": []}
 
-    def run(self, query):
+    def run(self, query, trace=None):
         """
         Answer the question and show how.
+
+        Args:
+            query: the question.
+            trace: optional Trace to record the steps in; by default a new one.
+                Passing your own lets you read the steps even when a step fails.
 
         Returns:
             A dict with "answer" (the text), "sources" (the chunks used for

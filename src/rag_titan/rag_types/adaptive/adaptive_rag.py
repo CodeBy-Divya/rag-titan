@@ -62,8 +62,9 @@ class AdaptiveRAG(BaseRAG):
 
     # sizes of a simple question's first search (TOP_K / TOP_N change these)
     DEFAULT_TOP_K, DEFAULT_TOP_N = 4, 2
+    DEFAULT_MAX_ATTEMPTS = 2
 
-    def __init__(self, llm, retriever, reranker, generator, max_attempts=2,
+    def __init__(self, llm, retriever, reranker, generator, max_attempts=DEFAULT_MAX_ATTEMPTS,
                  top_k=DEFAULT_TOP_K, top_n=DEFAULT_TOP_N):
         check_count("max_attempts", max_attempts)
         check_search_sizes(top_k, top_n)
@@ -79,10 +80,10 @@ class AdaptiveRAG(BaseRAG):
         self.evidence_checker = EvidenceChecker(llm)
         self.query_rewriter = QueryRewriter(llm)
 
-    def run(self, query):
+    def run(self, query, trace=None):
         """Answer the question from the indexed documents and record each step."""
         query = query.strip()
-        trace = Trace()
+        trace = trace if trace is not None else Trace()
 
         if not query:
             return trace.result("Please enter a question.")

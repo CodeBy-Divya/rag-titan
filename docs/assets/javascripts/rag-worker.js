@@ -1,6 +1,6 @@
 // Web Worker (a module worker) for the RAG playground: runs the real rag_titan package with Pyodide,
 // away from the page, so the page stays responsive while Python loads and runs.
-// Messages in:  {id, call, args, assets}; calls: info, run, evaluate (recorded),
+// Messages in:  {id, call, args, assets}; calls: info, run, evaluate, evaluate_tuned (recorded),
 //               models (list local Ollama models), live_run (your Ollama)
 // Messages out: {id, result} or {id, error}, plus {status: "..."} while loading.
 
@@ -60,7 +60,7 @@ def live(base, model, embed_model):
 def handle(call, args):
     if call == "live_run":
         return live(*args[:3]).run(*args[3:])
-    if call in ("info", "run", "evaluate"):
+    if call in ("info", "run", "evaluate", "evaluate_tuned"):
         return getattr(PLAYGROUND, call)(*args)
     raise ValueError(f"Unknown call {call}")
 `;
