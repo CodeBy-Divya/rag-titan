@@ -28,6 +28,7 @@ cp .env.example .env
 | `CHUNK_SIZE`      | `chunk_size`      | `150`                    | Units per chunk (see below)                    |
 | `CHUNK_OVERLAP`   | `chunk_overlap`   | `30`                     | Units shared by neighbouring chunks            |
 | `CHUNK_ENCODING`  | `chunk_encoding`  | `cl100k_base`            | tiktoken encoding (`token` only)               |
+| `PARENT_SIZE`     | `parent_size`     | `1500`                   | Largest parent section in characters (`parent_child` RAG only) |
 | `VECTOR_STORE`    | `vector_store`    | `memory`                 | `memory`, `sqlite`, `chroma`, `qdrant`: see [Vector stores](vector-stores.md) |
 | `VECTOR_STORE_PATH` | `vector_store_path` | store's (`rag_titan.db`) | File (sqlite) or folder (chroma, qdrant) of a saved index |
 | `VECTOR_STORE_URL` | `vector_store_url` | –                       | Chroma or Qdrant server instead of a folder    |
@@ -35,7 +36,12 @@ cp .env.example .env
 | `QDRANT_API_KEY`  | –                 | –                        | Qdrant Cloud key                               |
 | `DEDUPE_OVERLAP`  | `dedupe_overlap`  | `0.5`                    | Drop near-copy search results; `off` keeps all |
 | `RETRIEVER`       | `retriever`       | `dense`                  | `dense`, `bm25` or `hybrid`: see [Retrieval](retrieval.md) |
-| `RERANKER`        | `reranker`        | `keyword`                | `keyword`, `none` or `mmr` (relevant, not repetitive) |
+| `RERANKER`        | `reranker`        | `keyword`                | `keyword`, `none`, `mmr` (relevant, not repetitive), `llm` (the chat model rates the chunks) or `cross_encoder` (needs `[rerank]`) |
+| `RERANK_MODEL`    | `rerank_model`    | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Hugging Face cross-encoder (`cross_encoder` only) |
+| `TOP_K`           | `top_k`           | type's own (5 / 4 / 8)   | Chunks searched (simple / adaptive / parent_child) |
+| `TOP_N`           | `top_n`           | type's own (2 / 2 / 4)   | Chunks kept after reranking; at most `TOP_K` |
+| `ADAPTIVE_MAX_ATTEMPTS` | `adaptive_max_attempts` | `2`          | `adaptive`: searches before giving up      |
+| `PARENT_BUDGET`   | `parent_budget`   | `3000`                   | `parent_child`: most characters of parent text given to the model |
 | `GENERATOR`       | `generator`       | `grounded`               | How answers are written                        |
 | `LOG_LEVEL`       | –                 | `INFO`                   | Used by `setup_logging()`                      |
 
@@ -47,6 +53,38 @@ when you switch: 150 words is roughly 200 tokens or 900 characters, so for
 `500`, and for `page` `2000`. `CHUNKER=token` needs
 `pip install "rag-titan[tokens]"`; to use your own tokenizer, see
 [Chunking methods](chunking.md#your-own-tokenizer).
+
+## Tuning a RAG type
+
+Every RAG type searches `TOP_K` chunks and keeps the best `TOP_N` after
+reranking. Left empty, each type uses its own sizes:
+
+| RAG type       | `TOP_K` | `TOP_N` | Its own knobs |
+|----------------|---------|---------|---------------|
+| `simple`       | 5       | 2       | – |
+| `adaptive`     | 4       | 2       | `ADAPTIVE_MAX_ATTEMPTS` (2). A complex question searches 2 × `TOP_K`; each retry adds `TOP_K` more |
+| `parent_child` | 8       | 4       | `PARENT_SIZE` (1500, used when indexing), `PARENT_BUDGET` (3000) |
+
+`TOP_N` can never be more than `TOP_K`. Set only `TOP_K` and `TOP_N` follows:
+it keeps the type's own size, or `TOP_K` when that is smaller.
+
+```python
+from rag_titan import RAGTitan
+
+rag = RAGTitan(rag_type="parent_child",
+               settings={"top_k": 10, "top_n": 4, "parent_size": 1200,
+                         "parent_budget": 2000, "reranker": "llm"})
+```
+
+The same knobs on the command line, for one command:
+
+```bash
+rag-titan index --files handbook.md --vector-store sqlite --rag-type parent_child --parent-size 1200
+rag-titan ask --question "When do I need a doctor's note?" --vector-store sqlite \
+    --rag-type parent_child --top-k 10 --top-n 4 --parent-budget 2000 --reranker llm
+rag-titan evaluate --files *.md --questions questions.json \
+    --rag-type simple adaptive --top-k 8 --max-attempts 3
+```
 
 ## Ollama Cloud
 

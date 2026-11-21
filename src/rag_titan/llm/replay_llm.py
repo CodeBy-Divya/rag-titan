@@ -14,6 +14,7 @@ import hashlib
 import json
 
 from rag_titan.llm.base_llm import BaseLLM
+from rag_titan.utils.not_recorded import NotRecorded
 
 
 def prompt_key(messages):
@@ -76,7 +77,7 @@ class ReplayLLM(BaseLLM):
         """Return the recorded reply for exactly these messages."""
         key = prompt_key(messages)
         if key not in self.replies:
-            raise ValueError(
+            raise NotRecorded(
                 f"No recorded reply for this prompt (key {key}). The question, the "
                 "documents or the settings differ from the recording; record it again."
             )

@@ -5,7 +5,10 @@ hide:
 
 # RAG playground
 
-Run the RAG types **in your browser** and watch every step. Pick one or more
+Run the RAG types **in your browser** and watch every step. This page compares
+setups side by side; each RAG type also has its own page with **tuning knobs**:
+[Simple](rag-playground/simple.md), [Adaptive](rag-playground/adaptive.md) and
+[Parent-Child](rag-playground/parent-child.md). Pick one or more
 chunkers, retrievers and RAG types, choose a question, and each setup runs side
 by side on its own flow diagram: the steps light up in the order they ran, with
 step numbers, and the path taken turns orange. **Click any step** to see what
@@ -38,13 +41,13 @@ and clicking *Fuse ranks* shows each chunk's rank in both searches.
    answers in 5 steps. Keyword search finds only one chunk with the words
    *doctor's note*, and it starts mid-sentence, without *from the third sick
    day*, so the evidence check rightly says "no". The model then rewrites the
-   question as *physician statements or medical necessity letters*: words that
-   are not in the policy, so the keyword retry finds nothing at all and it gives
-   up after 9 steps.
+   question as *Documentation requirements for medical documentation | physician
+   note needs | when is a doctor's note required*; the keyword retry finds the
+   same chunk again plus an unrelated one, and it gives up after 9 steps.
 2. **A retry that works.** Ask *What is the maximum hotel cost per night?* with
    `adaptive` + `word` + `dense`: the first evidence check fails, the query is
-   rewritten as *Hotel nightly rates: maximum cost*, and the wider search
-   (`top_k` 4 → 8) succeeds.
+   rewritten as *Hotel price limits per night; maximum hotel rates; nightly hotel
+   cost ceilings*, and the wider search (`top_k` 4 → 8) succeeds.
 3. **Two files needed.** Ask the furniture question with `simple`: it keeps only
    two chunks, so the second file never reaches the model. With `adaptive` +
    `word` + `hybrid`, click **Fuse ranks**: `remote_work.md` comes first

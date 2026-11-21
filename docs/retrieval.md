@@ -1,4 +1,4 @@
-# Retrieval: dense, BM25 and hybrid
+# Retrieval: dense, BM25, hybrid and rerankers
 
 The retriever finds the chunks the model will read. rag-titan has three, chosen
 with one setting, and every RAG type works with all of them.
@@ -29,7 +29,7 @@ Then [measure it](#compare-them-on-your-own-questions) on your own questions.
 
     ```bash
     RETRIEVER=hybrid        # dense, bm25 or hybrid
-    RERANKER=mmr            # optional: keyword (default), none or mmr
+    RERANKER=mmr            # optional: keyword (default), none, mmr, llm or cross_encoder
     ```
 
 === "Command line"
@@ -207,6 +207,80 @@ With `λ = 0.7` it mostly follows relevance, but swaps a near-copy of an already
 picked chunk for one that adds something new, so the few chunks the model reads
 cover more of the question. `λ = 1` keeps the retriever's order.
 
+## Rerankers: choosing the chunks the model reads
+
+The retriever finds `top_k` chunks; the reranker orders them again and keeps the
+best `top_n` for the model. Like the retriever, it is one setting that works in
+every RAG type.
+
+| `RERANKER` | How it orders the chunks | Cost per question | Needs |
+|------------|--------------------------|-------------------|-------|
+| `keyword` (default) | search score + 0.05 for every word shared with the question | none | nothing |
+| `none` | keeps the search order | none | nothing |
+| `mmr` | relevant but not repetitive (see above) | embeds the chunks once | nothing |
+| `llm` | your chat model rates every chunk from 0 to 10 | one extra LLM call | nothing: uses `LLM_PROVIDER` |
+| `cross_encoder` | a cross-encoder model reads the question and each chunk together | a small model on your CPU | `pip install "rag-titan[rerank]"` |
+
+### `llm`: the model rates the chunks
+
+One call asks the chat model to rate **all** candidates at once (cheaper than one
+call per chunk, and the model can compare them). Each chunk goes inside a
+numbered fence, and the prompt says to ignore instructions found inside the
+chunks: document text is data, never orders. The reply is read whether the model
+writes clean JSON, a list, `1: 7` lines, or JSON inside a code fence. When it
+cannot be read at all, the search order is kept and every chunk says so in
+`rerank_note`: nothing fails silently. The score the RAG type uses is the rating ÷ 10.
+
+A real reply from `gemma3:4b`, for *When do I need a note from the doctor?* and
+three chunks (annual leave, sick leave, hotels):
+
+````text
+```json
+{"1": 0, "2": 10, "3": 0}
+```
+````
+
+→ the sick-leave chunk first with `rerank_score` 1.0, its `llm_score` 10.
+
+### `cross_encoder`: a model made for ranking
+
+A vector search compares two vectors made separately; a cross-encoder reads the
+question and the chunk **together**, so it sees how they relate word by word (RAG
+handbook 2026, §04). It is more precise and slower, so it only re-orders the
+chunks a search already found, in one batch.
+
+```bash
+pip install "rag-titan[rerank]"     # sentence-transformers (with PyTorch)
+```
+
+```bash
+RERANKER=cross_encoder
+RERANK_MODEL=cross-encoder/ms-marco-MiniLM-L-6-v2   # default, about 90 MB, or BAAI/bge-reranker-base
+```
+
+The model is downloaded once from Hugging Face, then runs on your machine. On the
+same three chunks the default model gave the raw scores `-11.26`, `4.78` and
+`-11.39`; rag-titan turns them into 0-to-1 relevance with the sigmoid
+`1 / (1 + e^-x)`, which keeps their order: `0.000`, `0.992`, `0.000`. Without the
+extra, `RERANKER=cross_encoder` stops at once with the install command.
+
+### Compare them
+
+```bash
+rag-titan evaluate --files *.md --questions questions.json --reranker keyword mmr llm
+```
+
+Setups that only differ in reranker share one index. In Python, pick one with
+`RAGTitan(settings={"reranker": "llm"})`, or build it yourself:
+
+```python
+from rag_titan.retrieval.rerankers import CrossEncoderReranker, LLMReranker
+
+reranker = LLMReranker(llm, max_chars=800)        # each chunk cut to 800 characters in the prompt
+reranker = CrossEncoderReranker("BAAI/bge-reranker-base", batch_size=32)
+best = reranker.rerank(question, matches, top_n=3)
+```
+
 ## Scores from 0 to 1
 
 Every retriever gives each chunk a `score` from 0 to 1, so rerankers work the
@@ -236,7 +310,9 @@ search run as three steps: *Vector search → Keyword search → Fuse ranks (RRF
 
 ## What is standard and what is simplified
 
-BM25, RRF and MMR follow the standard formulas above (RAG handbook 2026, §5).
+BM25, RRF and MMR follow the standard formulas above (RAG handbook 2026, §5), and
+the cross-encoder is a standard pretrained model; the LLM reranker is a simple
+"rate every chunk 0-10" prompt, not a trained ranking method.
 rag-titan keeps them small and readable:
 
 - one tokenizer for every language and a short English stopword list; no

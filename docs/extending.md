@@ -213,20 +213,27 @@ A retriever made of several steps can draw them: see `SEARCH_FLOW` and
    `BaseRAG`
 2. describe its steps in `FLOW`: one node per step (`id`, `label`, and `kind`:
    `search`, `llm` or `output`) and an edge for every arrow, loops included
-3. write `run(query)`: record every step with `trace.record("retrieve", ...)`
-   and end with `trace.result(answer, sources)`; `answer()` comes for free
-4. add it to `RAG_TYPES` and `build_rag()` in `factory.py`
+3. write `run(query, trace=None)`: use `trace = trace if trace is not None else
+   Trace()`, record every step with `trace.record("retrieve", ...)` and end with
+   `trace.result(answer, sources)`; `answer()` comes for free
+4. add it to `RAG_TYPES`, `CLASSES` and `build_rag()` in
+   `rag_types/rag_registry.py`; give the class `DEFAULT_TOP_K` / `DEFAULT_TOP_N`
+   so `TOP_K` and `TOP_N` work for it, and its own options to `TYPE_OPTIONS`
 5. export it in `rag_types/__init__.py`
 6. add tests in `tests/` (use `FakeLLM` and `FakeEmbedder` from `conftest.py`).
    `tests/test_traces.py` already checks every type in `RAG_TYPES`: it fails
    when `FLOW` is missing or a run takes a step that has no arrow
 7. measure it against the other RAG types with [evaluation](evaluation.md)
 8. document it in `docs/rag-types.md`
-9. record the [RAG playground](rag-playground.md) examples again, so your type
-   shows up there with its diagram (no JavaScript to write):
+9. give it a playground page: copy `docs/rag-playground/simple.md` to
+   `docs/rag-playground/<your-type>.md`, set `data-rag-type="<your_type>"`, add it
+   to the nav in `mkdocs.yml`, and list its knob values in `PRESET_GRID`
+   (`playground/recording.py`). Then record the
+   [RAG playground](rag-playground.md) examples again, so your type shows up with
+   its diagram and tuning knobs (no JavaScript to write):
 
     ```bash
-    python tools/playground/record_traces.py          # needs Ollama, about a minute
+    python tools/playground/record_traces.py          # needs Ollama, about 10 minutes
     ```
 
     `tests/test_playground.py` replays the recording and fails until you do this.
@@ -249,8 +256,8 @@ class OneShotRAG(BaseRAG):
         self.retriever = retriever
         self.generator = generator
 
-    def run(self, query):
-        trace = Trace()
+    def run(self, query, trace=None):
+        trace = trace if trace is not None else Trace()
         chunks = trace.record("retrieve", self.retriever.retrieve, query=query, top_k=1)
         answer = trace.record("generate", self.generator.generate, query=query, chunks=chunks)
         return trace.result(answer, chunks)

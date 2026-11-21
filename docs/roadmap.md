@@ -6,11 +6,11 @@
 
 - [x] Simple RAG (`"simple"`), available since 0.1.0
 - [x] Adaptive RAG (`"adaptive"`), available since 0.1.0
+- [x] Parent-Child RAG (`"parent_child"`): search small chunks, answer with their sections, available since 0.12.0
 - [ ] Corrective RAG (CRAG): grade chunks, fall back to web search
 - [ ] Multi-query RAG: ask several versions of the question
 - [ ] HyDE: search with a hypothetical answer
 - [ ] Self-RAG: the model critiques its own answer
-- [ ] Parent-document RAG: search small chunks, answer with big ones
 - [ ] Graph RAG: use a knowledge graph
 - [ ] Agentic RAG: an agent decides when and what to search
 
@@ -23,7 +23,8 @@
 - [ ] Vector stores: FAISS, LanceDB, pgvector, Pinecone, then Weaviate, Milvus, Elasticsearch, Redis, MongoDB
 - [x] Retrievers: BM25 and hybrid (RRF) next to dense, `RETRIEVER` setting, `evaluate --retriever`, available since 0.11.0
 - [x] Rerankers: MMR (`RERANKER=mmr`), available since 0.11.0
-- [ ] Rerankers: cross-encoder, LLM reranker
+- [x] Rerankers: cross-encoder (`RERANKER=cross_encoder`, `[rerank]` extra) and LLM reranker (`RERANKER=llm`), available since 0.12.0
+- [x] Tuning settings for every RAG type (`TOP_K`, `TOP_N`, `ADAPTIVE_MAX_ATTEMPTS`, `PARENT_SIZE`, `PARENT_BUDGET`) and a playground page per RAG type with knobs, available since 0.12.0
 - [x] Loaders: TXT and Markdown (`TextLoader`), available since 0.3.0
 - [ ] Loaders: HTML, CSV
 - [x] Chunkers: character, token, recursive (`"character"`, `"token"`, `"recursive"`), available since 0.2.0

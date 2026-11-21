@@ -16,20 +16,26 @@ The evidence is scored on the chunks each RAG type really gave to the LLM
 """
 
 import json
-import time
 
 from rag_titan.config import get_settings
 from rag_titan.evaluation.benchmark import format_table, summarize_rows
-from rag_titan.evaluation.metrics import ndcg_at_k, recall_at_k, reciprocal_rank
 from rag_titan.evaluation.questions import as_questions
-from rag_titan.factory import build_rag, build_rag_parts, build_reranker, build_retriever
-from rag_titan.prompts import NO_ANSWER
+from rag_titan.evaluation.run_scoring import (  # noqa: F401  (NOT_ANSWERED: old import path)
+    NOT_ANSWERED,
+    run_question,
+    score_sources,
+)
+from rag_titan.factory import (
+    PARENT_RAG_TYPES,
+    build_rag,
+    build_rag_parts,
+    build_reranker,
+    build_retriever,
+)
 
-# settings that only change how an index is searched, not what is in it
-SEARCH_ONLY = ("retriever", "reranker")
-
-# replies that mean "no answer was given"
-NOT_ANSWERED = {NO_ANSWER, "Please enter a question.", "Please index your documents first."}
+# settings that change how the chunks are searched and used, not the chunks themselves
+SEARCH_ONLY = ("retriever", "reranker", "rerank_model", "top_k", "top_n",
+               "adaptive_max_attempts", "parent_budget")
 
 RAG_COLUMNS = [
     ("Recall", "recall", "{:.3f}"),
@@ -58,7 +64,7 @@ def evaluate_rag(rag, questions, name=None):
         (each row keeps the answer and every step).
     """
     questions = as_questions(questions)
-    rows = [_run_question(rag, question) for question in questions]
+    rows = [run_question(rag, question) for question in questions]
 
     summary = summarize_rows(rows)
     result = {"name": name or type(rag).__name__}
@@ -96,7 +102,7 @@ def compare_setups(files, questions, setups):
     indexes = {}
     results = []
     for setup in setups:
-        parts = _indexed_parts(files, setup.get("settings") or {}, indexes)
+        parts = _indexed_parts(files, setup.get("settings") or {}, indexes, setup["rag_type"])
         rag = build_rag(setup["rag_type"], parts)
 
         result = evaluate_rag(rag, questions, name=setup["name"])
@@ -117,39 +123,22 @@ def format_rag_report(results):
     return format_table(title, "setup", results, RAG_COLUMNS)
 
 
-def _run_question(rag, question):
-    """Run one question, time it and score the chunks the LLM was given."""
-    start = time.perf_counter()
-    result = rag.run(question["question"])
-    ms = (time.perf_counter() - start) * 1000
+def _indexed_parts(files, overrides, indexes, rag_type=None):
+    """
+    Return built and indexed parts, reusing them when the settings are the same.
 
-    sources = result["sources"]
-    required = question["required_evidence_ids"]
-    k = max(len(sources), 1)   # score every source; k must be at least 1
-    return {
-        "id": question["id"],
-        "task_type": question.get("task_type"),
-        "answer": result["answer"],
-        "answered": result["answer"].strip() not in NOT_ANSWERED,
-        "recall": recall_at_k(sources, required, k),
-        "reciprocal_rank": reciprocal_rank(sources, required, k),
-        "ndcg": ndcg_at_k(sources, required, k),
-        "ms": ms,
-        "sources": [chunk["source"] for chunk in sources],
-        "steps": result["steps"],
-    }
-
-
-def _indexed_parts(files, overrides, indexes):
-    """Return built and indexed parts, reusing them when the settings are the same."""
+    A RAG type that needs parents (parent_child) gets an index of its own, so
+    the chunks of the other setups stay exactly as they were.
+    """
     # always a temporary in-memory index: comparing setups must never replace
     # (or mix several setups into) an index saved with VECTOR_STORE=sqlite
     settings = get_settings({**overrides, "vector_store": "memory"})
     ingestion = {key: value for key, value in settings.items() if key not in SEARCH_ONLY}
+    ingestion["parents"] = rag_type in PARENT_RAG_TYPES
     key = json.dumps(ingestion, sort_keys=True, default=str)
 
     if key not in indexes:
-        parts = build_rag_parts(settings)
+        parts = build_rag_parts(settings, rag_type)
         parts["pipeline"].run(files)
         indexes[key] = parts
 
@@ -157,7 +146,8 @@ def _indexed_parts(files, overrides, indexes):
     pipeline = indexes[key]["pipeline"]
     return {**indexes[key],
             "retriever": build_retriever(settings, pipeline.embedder, pipeline.store),
-            "reranker": build_reranker(settings, indexes[key]["llm"], pipeline.embedder)}
+            "reranker": build_reranker(settings, indexes[key]["llm"], pipeline.embedder),
+            "settings": settings}
 
 
 def _check_setups(setups):

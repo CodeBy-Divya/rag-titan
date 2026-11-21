@@ -35,6 +35,19 @@ rag-titan ask --files handbook.pdf --question "What does error E-4022 mean?" --r
 `--retriever` (`dense`, `bm25` or `hybrid`) works with `ask`, `chat` and, with
 several values, `evaluate`. See [Retrieval](retrieval.md).
 
+## Pick the RAG type and tune it
+
+```bash
+rag-titan index --files handbook.md --vector-store sqlite --rag-type parent_child --parent-size 1200
+rag-titan ask --question "What do I have to do before my last day?" --vector-store sqlite \
+    --rag-type parent_child --top-k 8 --top-n 2 --parent-budget 2000 --reranker llm --trace
+```
+
+`--rag-type` is `simple` (default), `adaptive` or `parent_child`. Parent-Child RAG
+needs an index with parent sections, so index with `--rag-type parent_child` too.
+The tuning options win over `.env` for one command; leave them out and each RAG
+type uses its own defaults (see [Tuning a RAG type](configuration.md#tuning-a-rag-type)).
+
 ## Chat in a loop
 
 ```bash
@@ -95,7 +108,15 @@ you add `--force`. See [Build a golden set](cookbook/golden-set.md).
 | Option        | Used by     | Meaning                                   |
 |---------------|-------------|-------------------------------------------|
 | `--files`     | ask, chat, evaluate | PDF, DOCX, MD or TXT files (required, except with `--input`) |
-| `--rag-type`  | ask, chat, evaluate | `simple` (default) or `adaptive`; evaluate takes several |
+| `--rag-type`  | ask, chat, index, evaluate | `simple` (default), `adaptive` or `parent_child`; evaluate takes several |
+| `--retriever` | ask, chat, evaluate | `dense`, `bm25` or `hybrid`; evaluate takes several |
+| `--reranker`  | ask, chat, evaluate | `keyword`, `none`, `mmr`, `llm` or `cross_encoder`; evaluate takes several |
+| `--top-k`, `--top-n` | ask, chat, evaluate | chunks searched and kept (default: each RAG type's own; `--top-k` 5 with `--retrieval-only`) |
+| `--max-attempts` | ask, chat, evaluate | adaptive: searches before giving up (default 2) |
+| `--parent-size` | ask, chat, index, evaluate | parent_child: largest parent section in characters, when indexing (default 1500) |
+| `--parent-budget` | ask, chat, evaluate | parent_child: most characters of sections given to the model (default 3000) |
+| `--vector-store`, `--store-path` | ask, chat, index | a [saved index](vector-stores.md) |
+| `--add`       | index       | add to the saved index instead of starting over |
 | `--log-level` | ask, chat, evaluate | `DEBUG`, `INFO` or `WARNING` (default) |
 | `--question`  | ask         | the question to answer (required)         |
 | `--trace`     | ask         | also print every step taken               |
@@ -103,7 +124,6 @@ you add `--force`. See [Build a golden set](cookbook/golden-set.md).
 | `--chunker`   | evaluate    | one or more chunkers to compare           |
 | `--chunk-size`, `--chunk-overlap` | evaluate | used by every setup  |
 | `--retrieval-only` | evaluate | score search only, no LLM             |
-| `--top-k`     | evaluate    | chunks per search with `--retrieval-only` (default 5) |
 | `--input`     | evaluate    | JSON data file to score, instead of `--files` and `--questions` |
 | `--output`    | evaluate    | JSON report path with `--input` (default `rag_report.json`); a `.md` is saved next to it |
 | `--k`         | evaluate    | results scored per query with `--input` (default 5) |

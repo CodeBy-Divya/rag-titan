@@ -73,11 +73,14 @@ nav:
       - RAG types: rag-types.md
       - Building blocks: building-blocks.md
       - Chunking methods: chunking.md
-      - Retrieval (dense, BM25, hybrid): retrieval.md
+      - Retrieval and rerankers: retrieval.md
       - Vector stores: vector-stores.md
       - Agents: agents.md
   - Playgrounds:
-      - RAG playground: rag-playground.md
+      - "RAG playground: compare": rag-playground.md
+      - Simple RAG: rag-playground/simple.md
+      - Adaptive RAG: rag-playground/adaptive.md
+      - Parent-Child RAG: rag-playground/parent-child.md
       - Chunk playground: playground.md
   - Advanced:
       - Extending rag-titan: extending.md
@@ -104,7 +107,9 @@ extra_javascript:
   - assets/javascripts/rag-steps.js
   - assets/javascripts/rag-flow.js
   - assets/javascripts/rag-cards.js
+  - assets/javascripts/rag-python.js
   - assets/javascripts/rag-playground.js
+  - assets/javascripts/rag-type-playground.js
   - assets/javascripts/cookbook-commands.js
   - assets/javascripts/cookbook-lab.js
   - https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js

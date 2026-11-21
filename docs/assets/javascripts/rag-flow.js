@@ -128,7 +128,7 @@ const RagFlow = (() => {
     const reset = () => {
       clearTimeout(timer);
       Object.values(nodes).forEach((n) => { n.visits = []; n.badge.textContent = "";
-        n.group.classList.remove("rf-visited", "rf-current"); });
+        n.group.classList.remove("rf-visited", "rf-current", "rf-failed"); });
       Object.values(edges).forEach((edge) => {
         edge.classList.remove("rf-taken");
         if (edge.dataset.plain) edge.setAttribute("marker-end", edge.dataset.plain);
@@ -142,6 +142,10 @@ const RagFlow = (() => {
       node.visits.push({ number: i + 1, step });
       node.badge.textContent = node.visits.map((v) => v.number).join(" · ");
       node.group.classList.add("rf-visited", "rf-current");
+      // a step that failed (a model reply not recorded) is drawn dashed
+      if (step.output && typeof step.output === "object" && "error" in step.output) {
+        node.group.classList.add("rf-failed");
+      }
       const edge = i > 0 && edges[`${steps[i - 1].step}>${step.step}`];
       if (edge) {
         edge.dataset.plain = edge.dataset.plain || edge.getAttribute("marker-end");

@@ -16,7 +16,7 @@ from rag_titan.retrieval.rerankers import KeywordReranker
 from rag_titan.vector_stores import MemoryStore
 
 
-def fake_parts(settings):
+def fake_parts(settings, rag_type=None):
     """Real chunker from the settings, fake LLM and embedder."""
     llm, embedder, store = PromptLLM(), FakeEmbedder(), MemoryStore()
     return {"llm": llm, "retriever": Retriever(embedder, store),

@@ -1,34 +1,16 @@
-// RAG playground (docs/rag-playground.md): pick chunkings, retrievers, RAG types and a question, then
-// watch each setup run on its own live flow diagram. Python runs in rag-worker.js;
-// the cards and the report are drawn by rag-cards.js.
+// RAG playground, Compare page (docs/rag-playground.md): pick chunkings, retrievers, RAG types and a
+// question, then watch each setup run on its own live flow diagram. Python runs in rag-worker.js
+// (started by rag-python.js); the cards and the report are drawn by rag-cards.js.
+// Each RAG type also has its own page with tuning controls: rag-type-playground.js.
 
 (() => {
   const app = document.getElementById("rag-playground-app");
   if (!app) return;
   const { el, choices, documentsBox, card, reportTable } = RagCards;
 
-  const here = document.currentScript.src;   // .../assets/javascripts/rag-playground.js?v=...
-  const assets = new URL("../", here).href;
-  const worker = new Worker(new URL(`rag-worker.js${new URL(here).search}`, here), { type: "module" });
-  const waiting = {};
-  let calls = 0;
   const status = el("p", "rp-status", "Starting…");
   app.replaceChildren(status);
-
-  worker.onmessage = ({ data }) => {
-    if (data.status) { status.textContent = data.status; return; }
-    const { resolve, reject } = waiting[data.id];
-    delete waiting[data.id];
-    if (data.error) reject(new Error(data.error)); else resolve(data.result);
-  };
-  // a worker that fails to load (no network, old browser) must not leave "Starting…" forever
-  worker.onerror = (event) => {
-    status.textContent = `The playground could not start: ${event.message || "the Python worker failed to load"}`;
-  };
-  const python = (call, ...args) => new Promise((resolve, reject) => {
-    waiting[++calls] = { resolve, reject };
-    worker.postMessage({ id: calls, call, args, assets });
-  });
+  const python = RagPython.start(status);
 
   // live mode: your Ollama, any question, the sample documents or your own text
   function liveControls() {
@@ -80,6 +62,8 @@
     const retrievers = choices("Retriever", info.retrievers, (name) => about[name] || "",
                                ["dense", "hybrid"]);
     const ragTypes = choices("RAG type", info.rag_types, () => "", info.rag_types);
+    ragTypes.box.append(el("p", "rp-help", "Each RAG type has its own page with tuning "
+      + "controls: see the pages under RAG playground."));
     const runButton = el("button", "md-button md-button--primary", "Run");
     const evalButton = el("button", "md-button", "Evaluate all questions");
     const results = el("div", "rp-results");

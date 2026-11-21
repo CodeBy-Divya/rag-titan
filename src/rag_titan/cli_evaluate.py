@@ -4,6 +4,7 @@ questions, or score the logged data of any RAG system.
 
     rag-titan evaluate --files *.md --questions questions.json \\
         --rag-type simple adaptive --chunker word paragraph --retriever dense hybrid
+    rag-titan evaluate --files *.md --questions questions.json --reranker keyword llm
     rag-titan evaluate --files *.md --questions questions.json \\
         --retriever dense bm25 hybrid --retrieval-only          # fast, no LLM
     rag-titan evaluate --input data.json --output report.json --baseline last_report.json
@@ -13,6 +14,7 @@ import itertools
 from pathlib import Path
 
 from rag_titan.app import RAGTitan
+from rag_titan.cli_options import add_tuning_options, tuning_settings
 from rag_titan.evaluation import (
     compare_setups,
     evaluate_file,
@@ -22,7 +24,7 @@ from rag_titan.evaluation import (
     load_questions,
 )
 from rag_titan.evaluation.reports import summary_text
-from rag_titan.factory import CHUNKERS, RAG_TYPES, RETRIEVERS
+from rag_titan.factory import CHUNKERS, RAG_TYPES, RERANKERS, RETRIEVERS
 
 
 def add_evaluate_command(commands):
@@ -37,11 +39,14 @@ def add_evaluate_command(commands):
                           help="one or more chunkers to compare (default: from settings)")
     evaluate.add_argument("--retriever", nargs="+", choices=RETRIEVERS,
                           help="one or more retrievers to compare (default: from settings)")
+    evaluate.add_argument("--reranker", nargs="+", choices=RERANKERS,
+                          help="one or more rerankers to compare (default: from settings)")
     evaluate.add_argument("--chunk-size", type=int, help="chunk size for every setup")
     evaluate.add_argument("--chunk-overlap", type=int, help="chunk overlap for every setup")
     evaluate.add_argument("--retrieval-only", action="store_true",
-                          help="score search only (fast, no LLM); --rag-type is ignored")
-    evaluate.add_argument("--top-k", type=int, default=5, help="chunks per search (retrieval only)")
+                          help="score search only (fast, no LLM); "
+                               "--rag-type and --reranker are ignored")
+    add_tuning_options(evaluate)       # --top-k, --top-n, ... for every setup
     add_data_options(evaluate)
 
 
@@ -57,11 +62,13 @@ def add_data_options(evaluate):
                           help="exit with code 1 when a metric got worse than the baseline")
 
 
-def setup_settings(args, chunker, retriever):
-    """The settings one setup changes: chunker, retriever and the chunk size/overlap."""
-    settings = {"chunker": chunker} if chunker else {}
+def setup_settings(args, chunker, retriever, reranker=None):
+    """The settings one setup changes: chunker, retriever, reranker, sizes and tuning."""
+    settings = {**tuning_settings(args), **({"chunker": chunker} if chunker else {})}
     if retriever:
         settings["retriever"] = retriever
+    if reranker:
+        settings["reranker"] = reranker
     if args.chunk_size is not None:
         settings["chunk_size"] = args.chunk_size
     if args.chunk_overlap is not None:
@@ -75,12 +82,17 @@ def combinations(args):
 
 
 def build_setups(args):
-    """One setup per RAG type x chunker x retriever, e.g. "adaptive + paragraph + hybrid"."""
+    """
+    One setup per RAG type x chunker x retriever x reranker,
+    e.g. "adaptive + paragraph + hybrid + llm".
+    """
     setups = []
-    for (chunker, retriever), rag_type in itertools.product(combinations(args), args.rag_type):
-        name = " + ".join(part for part in (rag_type, chunker, retriever) if part)
+    rerankers = getattr(args, "reranker", None) or [None]
+    for (chunker, retriever), reranker, rag_type in itertools.product(
+            combinations(args), rerankers, args.rag_type):
+        name = " + ".join(part for part in (rag_type, chunker, retriever, reranker) if part)
         setups.append({"name": name, "rag_type": rag_type,
-                       "settings": setup_settings(args, chunker, retriever)})
+                       "settings": setup_settings(args, chunker, retriever, reranker)})
     return setups
 
 
@@ -113,7 +125,7 @@ def run_retrieval_only(args, questions):
         rag = RAGTitan(settings=settings)
         rag.index(args.files)
         name = " + ".join(part for part in (chunker, retriever) if part)
-        results.append(evaluate_retriever(rag.parts["retriever"], questions, args.top_k,
+        results.append(evaluate_retriever(rag.parts["retriever"], questions, args.top_k or 5,
                                           name=name or rag.settings["retriever"]))
     return results
 

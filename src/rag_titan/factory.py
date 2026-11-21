@@ -13,6 +13,7 @@ from rag_titan.chunking.fixed_size import (
     TokenChunker,
     WordChunker,
 )
+from rag_titan.chunking.parent_child import ParentChildChunker
 from rag_titan.chunking.structure_aware import (
     HeadingChunker,
     PageChunker,
@@ -26,8 +27,11 @@ from rag_titan.generation.grounded_generator import GroundedGenerator
 from rag_titan.llm.anthropic_llm import AnthropicLLM
 from rag_titan.llm.ollama_llm import OllamaLLM
 from rag_titan.pipelines.indexing_pipeline import IndexingPipeline
-from rag_titan.rag_types.adaptive.adaptive_rag import AdaptiveRAG
-from rag_titan.rag_types.simple_rag import SimpleRAG
+from rag_titan.rag_types.rag_registry import (  # noqa: F401  (build_rag: old import path)
+    PARENT_RAG_TYPES,
+    RAG_TYPES,
+    build_rag,
+)
 from rag_titan.retrieval.retriever_registry import (  # noqa: F401  (build_reranker: old import path)
     RERANKERS,
     RETRIEVERS,
@@ -35,9 +39,6 @@ from rag_titan.retrieval.retriever_registry import (  # noqa: F401  (build_reran
     build_retriever,
 )
 from rag_titan.vector_stores.store_registry import VECTOR_STORES, build_store  # noqa: F401
-
-# every RAG type the package can build, used by build_rag() and the CLI
-RAG_TYPES = ["simple", "adaptive"]
 
 # every LLM provider build_llm() knows ("claude" also works for "anthropic")
 LLM_PROVIDERS = ["ollama", "anthropic", "claude"]
@@ -128,41 +129,33 @@ def build_generator(settings, llm):
     raise ValueError(f"Unknown generator: {name}")
 
 
-def build_rag_parts(settings):
+def build_rag_parts(settings, rag_type=None):
     """
     Build every RAG building block, sharing one embedder and one store.
 
+    Args:
+        settings: the dict from get_settings().
+        rag_type: the RAG type the parts are for. "parent_child" indexes
+            small children inside parent sections (PARENT_SIZE); others, or
+            None, index with the CHUNKER alone.
+
     Returns:
-        A dict with "llm", "pipeline", "retriever", "reranker"
-        and "generator".
+        A dict with "llm", "pipeline", "retriever", "reranker", "generator"
+        and "settings" (build_rag() reads the tuning options from it).
     """
     llm = build_llm(settings)
     embedder = build_embedder(settings)
     store = build_store(settings)
 
+    chunker = build_chunker(settings)
+    if rag_type in PARENT_RAG_TYPES:
+        chunker = ParentChildChunker(chunker, settings["parent_size"])
+
     return {
         "llm": llm,
-        "pipeline": IndexingPipeline(build_chunker(settings), embedder, store),
+        "pipeline": IndexingPipeline(chunker, embedder, store),
         "retriever": build_retriever(settings, embedder, store),
         "reranker": build_reranker(settings, llm, embedder),
         "generator": build_generator(settings, llm),
+        "settings": settings,
     }
-
-
-def build_rag(rag_type, parts):
-    """
-    Create one RAG type from the parts made by build_rag_parts().
-
-    Args:
-        rag_type: one of RAG_TYPES, for example "simple" or "adaptive".
-        parts: the dict returned by build_rag_parts().
-    """
-    if rag_type == "simple":
-        return SimpleRAG(parts["retriever"], parts["reranker"], parts["generator"])
-
-    if rag_type == "adaptive":
-        return AdaptiveRAG(
-            parts["llm"], parts["retriever"], parts["reranker"], parts["generator"]
-        )
-
-    raise ValueError(f"Unknown RAG type: {rag_type}. Choose from {RAG_TYPES}")

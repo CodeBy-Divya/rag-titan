@@ -8,23 +8,29 @@ from rag_titan.playground.presets import (
     PRESET_CHUNKING,
     PRESET_KEYS,
     build_parts,
-    check_presets,
     index_documents,
     preset_settings,
-    record_presets,
     replay_parts,
-    summarize_run,
     with_retriever,
+)
+from rag_titan.playground.recording import (
+    PRESET_GRID,
+    check_presets,
+    grid_tunings,
+    record_presets,
+    summarize_run,
 )
 from rag_titan.playground.session import Playground
 
 __all__ = [
     "LivePlayground",
     "PRESET_CHUNKING",
+    "PRESET_GRID",
     "PRESET_KEYS",
     "Playground",
     "build_parts",
     "check_presets",
+    "grid_tunings",
     "index_documents",
     "preset_settings",
     "record_presets",

@@ -6,6 +6,57 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-22
+
+### Added
+- **Parent-Child RAG** (`rag_type="parent_child"`): searches small chunks, then gives
+  the model the whole section each one sits in. Sections are used once each and
+  added best first within `PARENT_BUDGET` characters. Guide with a real run:
+  [RAG types](https://aion7891.github.io/rag-titan/rag-types/#parent-child-rag-parent_child).
+  On its example (six steps in one section) Simple RAG listed 1 step and
+  Parent-Child RAG all 6, with the same piece size, search and `top_n`.
+- `ParentChildChunker` in `rag_titan.chunking`: parents are heading sections (or
+  paragraph groups) of at most `PARENT_SIZE` characters, children are cut inside
+  them with any chunker; each child keeps its parent's id, text and place.
+  `RAGTitan(rag_type="parent_child")` and `rag-titan index --rag-type parent_child`
+  index this way; `rag-titan evaluate` gives Parent-Child RAG an index of its own.
+- **Two rerankers**: `RERANKER=llm` (the chat model rates every chunk 0-10 in one
+  call; chunks are fenced as untrusted data; an unreadable reply keeps the search
+  order and says so) and `RERANKER=cross_encoder` (a cross-encoder model,
+  `pip install "rag-titan[rerank]"`, `RERANK_MODEL`, scores mapped to 0-1).
+  `rag-titan evaluate --reranker ...` compares them.
+- **Every RAG knob is a setting**: `TOP_K`, `TOP_N` (empty: each type's own
+  defaults), `ADAPTIVE_MAX_ATTEMPTS`, `PARENT_SIZE`, `PARENT_BUDGET`, in `.env`,
+  `RAGTitan(settings={...})` and on the command line (`--top-k`, `--top-n`,
+  `--max-attempts`, `--parent-size`, `--parent-budget`, and `--reranker` on `ask`
+  and `chat`). Guide: [Tuning a RAG type](https://aion7891.github.io/rag-titan/configuration/#tuning-a-rag-type).
+- **A playground page per RAG type** (Simple, Adaptive, Parent-Child) with tuning
+  knobs, its own diagram, "Things to try" and the same setup as Python code.
+  Search, reranking and parents run live for any value; answers replay for the
+  recorded settings (the defaults and one knob at a time), and elsewhere the run
+  stops at the model step and shows exactly what the model would read. Recorded
+  again with `gemma3:4b`: 1,566 runs.
+- `examples/simple_rag.py`, `examples/adaptive_rag.py` and
+  `examples/parent_child_rag.py`: every knob set and explained, with real output
+  on the RAG types page.
+- `run(query, trace=None)` on every RAG type, and `Trace.record()` keeps a step
+  that failed; `NotRecorded` (a `ValueError`) when a replay has no recording.
+
+### Changed
+- `top_n` larger than `top_k`, and sizes that are not whole numbers above 0, now
+  raise a clear `ValueError` in every RAG type.
+- Adaptive RAG's search sizes come from `top_k` / `top_n` (complex questions 2x,
+  +1x per retry); the defaults give the same 4/2, 8/4 and +4/+2 as before.
+- `build_rag()` and `RAG_TYPES` live in `rag_titan.rag_types.rag_registry`
+  (`from rag_titan.factory import build_rag` still works);
+  `build_rag_parts(settings, rag_type=None)`. Evaluation's per-question scoring
+  moved to `rag_titan.evaluation.run_scoring` (old imports still work).
+- The playground's recording format is now keyed by tuning as well
+  (`rag_titan.playground.recording`); the compare page is unchanged.
+
+### Fixed
+- `MMRReranker` returned numpy numbers as `rerank_score`; they are plain floats now.
+
 ## [0.11.0] - 2026-11-21
 
 ### Added

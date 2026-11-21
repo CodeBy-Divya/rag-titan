@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 620" width="960" height="620" role="img" aria-labelledby="title desc">
+  <title id="title">Parent-Child RAG</title>
+  <desc id="desc">Small 25-word children are searched and the best two are kept. Both belong to the section "Before your last day", so they expand to that one section of 525 characters. The model reads the whole section and lists all six steps, where Simple RAG with the same piece size, search and top_n gives one.</desc>
+  <defs>
+    <style>
+      .bg { fill: #ffffff; stroke: #e2e8f0; }
+      .title { font: 700 22px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #0f172a; }
+      .sub { font: 400 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #475569; }
+      .h { font: 700 15px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #0f172a; }
+      .cls { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #0e7490; }
+      .ex { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #334155; white-space: pre; }
+      .sm { font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #334155; white-space: pre; }
+      .tag { font: 700 11px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #b45309; }
+      .note { font: 12px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #475569; }
+      .big { font: 600 15px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #0f172a; }
+      .keep { fill: #15803d; font-weight: 700; }
+      .drop { fill: #94a3b8; }
+      .code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #e2e8f0; white-space: pre; }
+      .cm { fill: #94a3b8; }
+      .st { fill: #86efac; }
+      .q { fill: #f8fafc; stroke: #94a3b8; stroke-width: 1.5; }
+      .search { fill: #ecfeff; stroke: #06b6d4; stroke-width: 1.5; }
+      .gen { fill: #f0fdf4; stroke: #22c55e; stroke-width: 1.5; }
+      .child { fill: #cffafe; stroke: #06b6d4; stroke-width: 1; }
+      .section { fill: #ffffff; stroke: #0e7490; stroke-width: 1.5; stroke-dasharray: 4 3; }
+      .flow { fill: none; stroke: #64748b; stroke-width: 2; stroke-dasharray: 6 5; animation: dash 0.9s linear infinite; }
+      .hl { fill: none; stroke: #f97316; stroke-width: 3; opacity: 0; animation: glow 10s infinite; }
+      .grow { animation: grow 10s infinite; transform-box: fill-box; transform-origin: top; }
+      @keyframes dash { to { stroke-dashoffset: -11; } }
+      @keyframes glow { 0% { opacity: 0; } 2% { opacity: 1; } 18% { opacity: 1; } 21% { opacity: 0; } 100% { opacity: 0; } }
+      @keyframes grow { 0%, 59% { transform: scaleY(0.25); } 66%, 100% { transform: scaleY(1); } }
+      @media (prefers-reduced-motion: reduce) { .flow, .hl, .grow { animation: none; } }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0.5" y="0.5" width="959" height="619" rx="16"/>
+  <text class="title" x="30" y="44">Parent-Child RAG: search small, answer with the section</text>
+  <text class="sub" x="30" y="66">Small chunks find the right place; the whole section gives the answer. rag_type="parent_child"</text>
+
+  <!-- question -->
+  <rect class="q" x="30" y="84" width="900" height="44" rx="10"/>
+  <text class="big" x="48" y="112">Question:  “What do I have to do before my last day?”</text>
+
+  <path class="flow" d="M135 130 V154" marker-end="url(#arrow)"/>
+
+  <!-- 1. retrieve children -->
+  <rect class="search" x="30" y="160" width="210" height="262" rx="10"/>
+  <text class="h" x="44" y="186">1 · Retrieve <tspan class="tag" dx="4">top_k=6</tspan></text>
+  <text class="cls" x="44" y="206">small children, 25 words</text>
+  <text class="ex" x="44" y="240">chunk_6   0.66</text>
+  <text class="ex" x="44" y="266">chunk_9   0.62</text>
+  <text class="ex" x="44" y="292">chunk_11  0.60</text>
+  <text class="ex" x="44" y="318">chunk_7   0.54</text>
+  <text class="ex drop" x="44" y="344">… 2 more</text>
+  <text class="note" x="44" y="380">each child knows its</text>
+  <text class="note" x="44" y="398">parent section</text>
+
+  <path class="flow" d="M242 290 H256" marker-end="url(#arrow)"/>
+
+  <!-- 2. rerank -->
+  <rect class="search" x="260" y="160" width="210" height="262" rx="10"/>
+  <text class="h" x="274" y="186">2 · Rerank <tspan class="tag" dx="4">top_n=2</tspan></text>
+  <text class="cls" x="274" y="206">KeywordReranker</text>
+  <text class="ex" x="274" y="240">chunk_6  <tspan class="keep">0.81 ✓</tspan></text>
+  <text class="ex" x="274" y="266">chunk_9  <tspan class="keep">0.67 ✓</tspan></text>
+  <text class="ex drop" x="274" y="292">chunk_11 0.65 ✗</text>
+  <text class="ex drop" x="274" y="318">chunk_7  0.54 ✗</text>
+  <text class="note" x="274" y="380">2 small pieces: Simple RAG</text>
+  <text class="note" x="274" y="398">would answer from just these</text>
+
+  <path class="flow" d="M472 290 H486" marker-end="url(#arrow)"/>
+
+  <!-- 3. expand to parents -->
+  <rect class="search" x="490" y="160" width="210" height="262" rx="10"/>
+  <text class="h" x="504" y="186">3 · Expand to parents</text>
+  <text class="cls" x="504" y="206">each section once, budget</text>
+  <rect class="section grow" x="504" y="220" width="182" height="128" rx="6"/>
+  <text class="sm" x="512" y="238">Before your last day</text>
+  <rect class="child" x="512" y="248" width="166" height="20" rx="4"/>
+  <text class="sm" x="518" y="262">chunk_6 Tell your…</text>
+  <rect class="child" x="512" y="274" width="166" height="20" rx="4"/>
+  <text class="sm" x="518" y="288">chunk_9 …leave days…</text>
+  <text class="sm" x="512" y="314">+ the rest of the section</text>
+  <text class="sm" x="512" y="332">= 525 characters</text>
+  <text class="note" x="504" y="380">2 children, 1 section</text>
+  <text class="note" x="504" y="398">525 of 3000 budget used</text>
+
+  <path class="flow" d="M702 290 H716" marker-end="url(#arrow)"/>
+
+  <!-- 4. generate -->
+  <rect class="gen" x="720" y="160" width="210" height="262" rx="10"/>
+  <text class="h" x="734" y="186">4 · Generate</text>
+  <text class="cls" x="734" y="206">GroundedGenerator → LLM</text>
+  <text class="sm" x="734" y="236"><tspan class="tag">CONTEXT</tspan> the whole section</text>
+  <text class="sm" x="734" y="258">1 tell manager and HR</text>
+  <text class="sm" x="734" y="276">2 fill in the exit form</text>
+  <text class="sm" x="734" y="294">3 hand over your work</text>
+  <text class="sm" x="734" y="312">4 copy personal files</text>
+  <text class="sm" x="734" y="330">5 book a return slot</text>
+  <text class="sm" x="734" y="348">6 use up leave days</text>
+  <text class="note" x="734" y="398">all 6 steps are in the text</text>
+
+  <path class="flow" d="M825 424 V448" marker-end="url(#arrow)"/>
+
+  <!-- answers -->
+  <rect class="gen" x="30" y="454" width="900" height="64" rx="10"/>
+  <text class="big" x="48" y="480">Parent-Child RAG: lists all 6 steps</text>
+  <text class="note" x="48" y="502">Simple RAG, same piece size, search and top_n: “Tell your manager and HR in writing at least four weeks before your last day.” (1 of 6)</text>
+
+  <!-- highlight each step in turn -->
+  <rect class="hl" x="30" y="84" width="900" height="44" rx="10" style="animation-delay:0s"/>
+  <rect class="hl" x="30" y="160" width="210" height="262" rx="10" style="animation-delay:2s"/>
+  <rect class="hl" x="260" y="160" width="210" height="262" rx="10" style="animation-delay:4s"/>
+  <rect class="hl" x="490" y="160" width="210" height="262" rx="10" style="animation-delay:6s"/>
+  <rect class="hl" x="720" y="160" width="210" height="262" rx="10" style="animation-delay:8s"/>
+
+  <!-- code -->
+  <rect x="30" y="534" width="900" height="66" rx="12" fill="#0f172a"/>
+  <text class="code" x="52" y="562">rag = RAGTitan(rag_type=<tspan class="st">"parent_child"</tspan>, settings={<tspan class="st">"top_n"</tspan>: 2, <tspan class="st">"parent_budget"</tspan>: 3000})</text>
+  <text class="code" x="52" y="584">rag.index(files)   <tspan class="cm"># children are cut inside each section</tspan>; rag.ask(<tspan class="st">"..."</tspan>)</text>
+</svg>

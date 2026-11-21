@@ -32,27 +32,48 @@ const RagCards = (() => {
   }
 
   function stats(run) {
-    const evidence = run.recall === null ? "evidence not scored (your own question or text)"
-      : `found ${Math.round(run.recall * 100)}% of the evidence`;
+    const share = run.recall === null ? null : `${Math.round(run.recall * 100)}%`;
+    let evidence = share === null ? "evidence not scored (your own question or text)"
+      : `found ${share} of the evidence`;
+    if (run.recorded === false) {
+      evidence = share === null ? "evidence not scored (the run stopped before the answer)"
+        : `the context the model would read holds ${share} of the evidence`;
+    }
     const files = [...new Set(run.sources)].join(", ") || "none";
-    return `${evidence} · ${run.steps.length} steps · ${Math.round(run.ms)} ms · files given to the LLM: ${files}`;
+    const given = run.recorded === false ? "files the model would read" : "files given to the LLM";
+    return `${evidence} · ${run.steps.length} steps · ${Math.round(run.ms)} ms · ${given}: ${files}`;
+  }
+
+  // The answer, or why there is none: a run past the recording stops at a model step.
+  function answerText(run, label) {
+    if (run.recorded !== false) return run.answer;
+    if (!run.stopped_at) return "Not recorded for these settings.";
+    const where = `Not recorded for these settings: the run stopped at “${label(run.stopped_at)}”.`;
+    return run.stopped_at === "generate"
+      ? `${where} Click it to see exactly what the model would read.`
+      : `${where} That model reply was never recorded; try the values marked as recorded.`;
   }
 
   // one setup's run: title, live diagram, answer, numbers, and the details of a clicked step
   function card(flow, title, run) {
     const box = el("div", "rp-card");
     const holder = el("div"), details = el("div", "rp-details");
-    const label = (id) => flow.nodes.find((node) => node.id === id).label;
+    const label = (id) => (flow.nodes.find((node) => node.id === id) || { label: id }).label;
     box.append(el("h3", "", title), holder,
-      el("p", run.answered ? "rp-answer" : "rp-answer rp-none", run.answer),
+      el("p", run.answered ? "rp-answer" : "rp-answer rp-none", answerText(run, label)),
       el("p", "rp-stats", stats(run)), details);
     const diagram = RagFlow.render(holder, flow, {
       label: title,
       onSelect: (id, visits) => details.replaceChildren(RagSteps.details(label(id), visits)),
     });
     // after the run, open the search step: the fused ranks for hybrid, else the one search
-    const search = flow.nodes.some((node) => node.id === "fuse") ? "fuse" : "retrieve";
-    return { box, play: () => diagram.play(run.steps, 650).then(() => diagram.select(search)) };
+    // (or the step where a run past the recording stopped)
+    const has = (id) => flow.nodes.some((node) => node.id === id);
+    const search = has("fuse") ? "fuse" : "retrieve";
+    // Parent-Child RAG: its own step, the expansion to parents, says the most
+    const open = run.stopped_at || (has("expand") ? "expand" : search);
+    return { box, play: (delay) => diagram.play(run.steps, delay || 650)
+      .then(() => diagram.select(open)) };
   }
 
   function reportTable(report) {

@@ -32,16 +32,36 @@ const RagSteps = (() => {
   }
 
   function chunkLine(chunk) {
+    if (chunk.children) return parentLine(chunk);
     const score = "rerank_score" in chunk ? `rerank ${chunk.rerank_score.toFixed(3)}`
       : "score" in chunk ? chunk.score.toFixed(3) : "";
+    // the LLM reranker's own 0-10 rating, and why a score was kept or set to 0
+    const rating = chunk.llm_score === undefined || chunk.llm_score === null ? ""
+      : `  [model rated ${chunk.llm_score}/10]`;
+    const note = chunk.rerank_note ? `\n   note: ${chunk.rerank_note}` : "";
     return `${chunk.id} ${chunk.source || ""} ${score ? `(${score})` : ""}${ranks(chunk.score_trace)}`
-      + `\n   “${short(chunk.text || "")}”`;
+      + `${rating}\n   “${short(chunk.text || "")}”${note}`;
+  }
+
+  // A parent section of Parent-Child RAG: which children led to it, then its text.
+  function parentLine(parent) {
+    const count = parent.children.length;
+    return `${parent.parent_id} · ${count} child${count === 1 ? "" : "ren"} `
+      + `(${parent.children.join(", ")}) · ${parent.text.length} chars\n`
+      + `   matched: “${short(parent.child_text || "")}”\n`
+      + `   section given to the model: “${short(parent.text)}”`;
   }
 
   // One value: chunks one per line, yes/no for booleans, quoted text otherwise.
   function describe(value, brief) {
+    if (value && typeof value === "object" && !Array.isArray(value) && "error" in value) {
+      return value.error.startsWith("NotRecorded")
+        ? "not recorded: no model reply was recorded for these settings"
+        : `failed: ${short(value.error)}`;
+    }
     if (isChunks(value)) {
-      const count = `${value.length} chunk${value.length === 1 ? "" : "s"}`;
+      const word = value.length && value[0].children ? "parent section" : "chunk";
+      const count = `${value.length} ${word}${value.length === 1 ? "" : "s"}`;
       return brief ? count : [count, ...value.map(chunkLine)].join("\n");
     }
     if (typeof value === "boolean") return value ? "yes" : "no";
@@ -63,6 +83,12 @@ const RagSteps = (() => {
     const inputs = Object.entries(visit.step.input || {})
       .map(([key, value]) => `${key}=${describe(value, true)}`).join(", ");
     box.append(head, io("in", inputs || "–"), io("out", describe(visit.step.output, false)));
+    // a step stopped for lack of a recording: show in full what the model would have read
+    const output = visit.step.output;
+    const stopped = output && typeof output === "object" && "error" in output;
+    if (stopped && isChunks(visit.step.input.chunks)) {
+      box.append(io("the model would read", describe(visit.step.input.chunks, false)));
+    }
     return box;
   }
 

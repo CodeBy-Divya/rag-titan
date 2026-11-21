@@ -4,10 +4,13 @@
 Index once, then ask as often as you like without the files:
     rag-titan index --files handbook.pdf --vector-store sqlite
     rag-titan index --files new_policy.pdf --vector-store sqlite --add
+    rag-titan index --files handbook.pdf --vector-store sqlite --rag-type parent_child
     rag-titan ask --question "How many leave days?" --vector-store sqlite
 """
 
 from rag_titan.app import RAGTitan
+from rag_titan.cli_options import add_tuning_options, tuning_settings
+from rag_titan.rag_types.rag_registry import RAG_TYPES
 from rag_titan.vector_stores.store_registry import VECTOR_STORES
 
 
@@ -28,14 +31,19 @@ def add_index_command(commands):
                        help="add to the saved index (a file indexed before is replaced) "
                             "instead of starting over")
     index.add_argument("--log-level", default="WARNING", help="DEBUG, INFO or WARNING")
+    index.add_argument("--rag-type", default="simple", choices=RAG_TYPES,
+                       help="the RAG type you will ask with: parent_child indexes small "
+                            "chunks inside their sections")
     add_store_options(index)
+    add_tuning_options(index, search=False)
 
 
 def store_settings(args):
-    """The settings the store (and --retriever) options change."""
-    settings = {}
-    if getattr(args, "retriever", None):          # ask and chat only
-        settings["retriever"] = args.retriever
+    """The settings the store, search and tuning options change."""
+    settings = tuning_settings(args)
+    for option in ("retriever", "reranker"):      # ask and chat only
+        if getattr(args, option, None):
+            settings[option] = getattr(args, option)
     if args.vector_store:
         settings["vector_store"] = args.vector_store
     if args.store_path:
@@ -45,7 +53,7 @@ def store_settings(args):
 
 def run_index(args):
     """Index the files into the saved store and say where they went."""
-    rag = RAGTitan(settings=store_settings(args))
+    rag = RAGTitan(rag_type=args.rag_type, settings=store_settings(args))
     store = rag.pipeline.store
     if not store.persistent:
         raise SystemExit("rag-titan index: VECTOR_STORE=memory keeps nothing after the "

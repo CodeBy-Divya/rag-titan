@@ -49,6 +49,12 @@ def _get_int(name, default):
         raise ValueError(f"Setting {name} must be a whole number, got '{value}'")
 
 
+def _get_optional_int(name):
+    """Read a whole number from the environment; missing or empty gives None."""
+    value = os.getenv(name, "").strip()
+    return _get_int(name, None) if value else None
+
+
 def _get_bool(name, default):
     """Read a yes/no value from the environment, or use the default."""
     value = os.getenv(name, str(default)).strip().lower()
@@ -100,16 +106,15 @@ def get_settings(overrides=None):
         "embed_model": os.getenv("EMBED_MODEL", "nomic-embed-text"),
 
         # Chunking
-        "chunker": os.getenv("CHUNKER", "word"),
-        "chunk_size": _get_int("CHUNK_SIZE", 150),
-        "chunk_overlap": _get_int("CHUNK_OVERLAP", 30),
-        "chunk_encoding": os.getenv("CHUNK_ENCODING", "cl100k_base"),  # token chunker only
+        **_chunk_settings(),
 
         # Storage, retrieval and generation
         **_store_settings(),
         # drop a search result that overlaps a better one by this share ("off" keeps all)
         "dedupe_overlap": _get_overlap("DEDUPE_OVERLAP", 0.5),
         "reranker": os.getenv("RERANKER", "keyword"),
+        "rerank_model": os.getenv("RERANK_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2"),
+        **_tuning_settings(),
         "generator": os.getenv("GENERATOR", "grounded"),
     }
 
@@ -119,6 +124,31 @@ def get_settings(overrides=None):
     # fill these last, so an overridden provider or store gets its own defaults
     _fill_defaults(settings)
     return settings
+
+
+def _chunk_settings():
+    """Read the chunking settings from the environment."""
+    return {
+        "chunker": os.getenv("CHUNKER", "word"),
+        "chunk_size": _get_int("CHUNK_SIZE", 150),
+        "chunk_overlap": _get_int("CHUNK_OVERLAP", 30),
+        "chunk_encoding": os.getenv("CHUNK_ENCODING", "cl100k_base"),  # token chunker only
+        # parent_child RAG only: largest parent section, in characters
+        "parent_size": _get_int("PARENT_SIZE", 1500),
+    }
+
+
+def _tuning_settings():
+    """Read how much each RAG type searches and keeps (see rag_types/rag_registry.py)."""
+    return {
+        # empty: each RAG type's own default (simple 5/2, adaptive 4/2, parent_child 8/4)
+        "top_k": _get_optional_int("TOP_K"),      # chunks searched
+        "top_n": _get_optional_int("TOP_N"),      # chunks kept after reranking
+        # adaptive: searches before giving up
+        "adaptive_max_attempts": _get_int("ADAPTIVE_MAX_ATTEMPTS", 2),
+        # parent_child: most characters of parent sections given to the model
+        "parent_budget": _get_int("PARENT_BUDGET", 3000),
+    }
 
 
 def _store_settings():

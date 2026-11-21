@@ -27,9 +27,14 @@ class BaseRAG:
 
     FLOW = {"nodes": [], "edges": []}
 
-    def run(self, query):
+    def run(self, query, trace=None):
         """
         Answer the question and show how.
+
+        Args:
+            query: the question.
+            trace: optional Trace to record the steps in; by default a new one.
+                Passing your own lets you read the steps even when a step fails.
 
         Returns:
             A dict with "answer" (the text), "sources" (the chunks used for
@@ -48,3 +53,31 @@ class BaseRAG:
     def answer(self, query):
         """Return only the answer text."""
         return self.run(query)["answer"]
+
+
+def check_count(name, value):
+    """
+    Return `value` when it is a whole number above 0, else raise a clear ValueError.
+
+    Args:
+        name: the option's name, used in the message (for example "top_k").
+        value: the value to check. True/False are refused: Python counts
+            True as 1, but top_k=True is surely a mistake.
+    """
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ValueError(f"{name} must be a whole number above 0, got {value!r}")
+    return value
+
+
+def check_search_sizes(top_k, top_n):
+    """
+    Check the two sizes every RAG type has: chunks searched (top_k) and kept (top_n).
+
+    The reranker keeps the best top_n of the top_k chunks found, so top_n
+    larger than top_k can only be a mistake.
+    """
+    check_count("top_k", top_k)
+    check_count("top_n", top_n)
+    if top_n > top_k:
+        raise ValueError(f"top_n ({top_n}) cannot be more than top_k ({top_k}): the reranker "
+                         "keeps the best top_n of the top_k chunks found")
