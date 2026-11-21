@@ -8,6 +8,29 @@ pip install rag-titan
 
 Python 3.10 or newer is required.
 
+### Optional extras
+
+The plain install has all three RAG types, the SQLite store, every retriever, the
+`keyword`, `mmr` and `llm` rerankers, evaluation and the CLI. Four features need an
+extra, and `[all]` installs every one of them:
+
+| Install | Adds | Size |
+|---|---|---|
+| `pip install "rag-titan[tokens]"` | `CHUNKER=token`, see [Chunking](chunking.md) | small |
+| `pip install "rag-titan[chroma]"` | `VECTOR_STORE=chroma`, see [Vector stores](vector-stores.md) | medium |
+| `pip install "rag-titan[qdrant]"` | `VECTOR_STORE=qdrant`, see [Vector stores](vector-stores.md) | medium |
+| `pip install "rag-titan[rerank]"` | `RERANKER=cross_encoder`, see [Retrieval and rerankers](retrieval.md) | large (PyTorch) |
+| `pip install "rag-titan[all]"` | all of the above | large |
+
+Extras combine, for example `pip install "rag-titan[chroma,tokens]"`. On Linux,
+PyTorch's default build is a large download; for `rerank` or `all` install the
+CPU-only build first:
+
+```bash
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install "rag-titan[all]"
+```
+
 !!! tip "Windows: rag-titan.exe is blocked?"
     Smart App Control or a company application-control policy can block the
     `rag-titan.exe` launcher that pip creates ("An Application Control policy has
