@@ -33,3 +33,16 @@ jobs:
           python-version: "3.12"
       - run: pip install -e ".[dev,chroma,qdrant]"
       - run: pytest tests/test_chroma_qdrant_stores.py tests/test_sqlite_store.py tests/test_store_rules.py -rs
+
+  # the cross-encoder reranker is an optional extra ([rerank]): install it with the
+  # small CPU build of torch and score real (question, chunk) pairs with the model
+  rerank:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install -e ".[dev,rerank]"
+      - run: pytest tests/test_precision_rerankers.py -rs

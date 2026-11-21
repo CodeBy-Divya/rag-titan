@@ -51,7 +51,8 @@ def test_settings_pick_the_retriever_and_reranker():
 
 @pytest.mark.parametrize("overrides, message", [
     ({"retriever": "sparse"}, "Unknown retriever: 'sparse'. Use one of: dense, bm25, hybrid"),
-    ({"reranker": "cohere"}, "Unknown reranker: 'cohere'. Use one of: keyword, none, mmr"),
+    ({"reranker": "cohere"},
+     "Unknown reranker: 'cohere'. Use one of: keyword, none, mmr, llm, cross_encoder"),
 ])
 def test_typos_list_the_choices(overrides, message):
     settings = get_settings(overrides)

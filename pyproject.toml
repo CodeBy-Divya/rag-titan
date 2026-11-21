@@ -55,6 +55,10 @@ chroma = [
 qdrant = [
     "qdrant-client>=1.10",
 ]
+# stronger reranking (RERANKER=cross_encoder); llm and mmr need nothing extra
+rerank = [
+    "sentence-transformers>=3.0",
+]
 docs = [
     "mkdocs-material>=9.5",
     "mkdocstrings[python]>=0.25",

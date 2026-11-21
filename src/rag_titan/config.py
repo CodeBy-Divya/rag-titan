@@ -107,6 +107,7 @@ def get_settings(overrides=None):
         # drop a search result that overlaps a better one by this share ("off" keeps all)
         "dedupe_overlap": _get_overlap("DEDUPE_OVERLAP", 0.5),
         "reranker": os.getenv("RERANKER", "keyword"),
+        "rerank_model": os.getenv("RERANK_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2"),
         "generator": os.getenv("GENERATOR", "grounded"),
     }
 

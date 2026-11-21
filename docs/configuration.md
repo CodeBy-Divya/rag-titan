@@ -36,7 +36,8 @@ cp .env.example .env
 | `QDRANT_API_KEY`  | –                 | –                        | Qdrant Cloud key                               |
 | `DEDUPE_OVERLAP`  | `dedupe_overlap`  | `0.5`                    | Drop near-copy search results; `off` keeps all |
 | `RETRIEVER`       | `retriever`       | `dense`                  | `dense`, `bm25` or `hybrid`: see [Retrieval](retrieval.md) |
-| `RERANKER`        | `reranker`        | `keyword`                | `keyword`, `none` or `mmr` (relevant, not repetitive) |
+| `RERANKER`        | `reranker`        | `keyword`                | `keyword`, `none`, `mmr` (relevant, not repetitive), `llm` (the chat model rates the chunks) or `cross_encoder` (needs `[rerank]`) |
+| `RERANK_MODEL`    | `rerank_model`    | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Hugging Face cross-encoder (`cross_encoder` only) |
 | `GENERATOR`       | `generator`       | `grounded`               | How answers are written                        |
 | `LOG_LEVEL`       | –                 | `INFO`                   | Used by `setup_logging()`                      |
 

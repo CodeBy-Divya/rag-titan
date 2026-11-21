@@ -8,13 +8,15 @@ Adding one: create its class, add its name to RETRIEVERS or RERANKERS and one
 from rag_titan.retrieval.bm25_retriever import BM25Retriever
 from rag_titan.retrieval.dense_retriever import DenseRetriever
 from rag_titan.retrieval.hybrid_retriever import HybridRetriever
+from rag_titan.retrieval.rerankers.cross_encoder_reranker import CrossEncoderReranker
 from rag_titan.retrieval.rerankers.keyword_reranker import KeywordReranker
+from rag_titan.retrieval.rerankers.llm_reranker import LLMReranker
 from rag_titan.retrieval.rerankers.mmr_reranker import MMRReranker
 from rag_titan.retrieval.rerankers.no_reranker import NoReranker
 
 # every name build_retriever() / build_reranker() knows, used by the CLI and errors
 RETRIEVERS = ["dense", "bm25", "hybrid"]
-RERANKERS = ["keyword", "none", "mmr"]
+RERANKERS = ["keyword", "none", "mmr", "llm", "cross_encoder"]
 
 
 def build_retriever(settings, embedder, store):
@@ -50,9 +52,14 @@ def build_reranker(settings, llm=None, embedder=None):
     """
     Create the reranker named in settings["reranker"].
 
+    "keyword" adds a bonus for shared words, "none" keeps the search order,
+    "mmr" trades some relevance for variety, "llm" asks the chat model to rate
+    the chunks, "cross_encoder" scores (question, chunk) pairs with a model
+    (pip install "rag-titan[rerank]"; RERANK_MODEL picks it).
+
     Args:
         settings: the dict from get_settings().
-        llm: not used yet; kept for future LLM-based rerankers.
+        llm: the chat model, needed by "llm".
         embedder: needed by "mmr", which compares chunks with each other.
     """
     name = _name(settings, "reranker")
@@ -66,6 +73,13 @@ def build_reranker(settings, llm=None, embedder=None):
             raise ValueError("The mmr reranker needs the embedder: build_reranker(settings, "
                              "embedder=...)")
         return MMRReranker(embedder)
+    if name == "llm":
+        if llm is None:
+            raise ValueError("The llm reranker needs the chat model: build_reranker(settings, "
+                             "llm=...)")
+        return LLMReranker(llm)
+    if name == "cross_encoder":
+        return CrossEncoderReranker(settings["rerank_model"])
 
     raise ValueError(f"Unknown reranker: {settings['reranker']!r}. "
                      f"Use one of: {', '.join(RERANKERS)}")
