@@ -195,6 +195,10 @@ Two details matter in practice:
   the other gives exactly the same RRF score either way round; the chunk with
   more relevance in total wins.
 
+The same fusion (`rag_titan.retrieval.fusion`: `rrf_fuse`, `fuse_ranked`,
+`search_and_fuse`) also merges the several searches of
+[HyDE RAG and RAG-Fusion](rag-types.md#hyde-rag-hyde), one list per search query.
+
 ### MMR: relevant but not repetitive
 
 `RERANKER=mmr` picks the chunks for the model one by one (RAG handbook 2026, §5.5):

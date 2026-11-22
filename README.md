@@ -175,7 +175,7 @@ and the guide is **[Evaluating every stage →](https://aion7891.github.io/rag-t
 
 ## Supported RAG types
 
-**rag-titan supports 3 RAG types.** Pick one with `rag_type`. Every type has `answer()`, and
+**rag-titan supports 5 RAG types.** Pick one with `rag_type`. Every type has `answer()`, and
 `run()` that also returns every step it took ([see the steps](https://aion7891.github.io/rag-titan/rag-types/#seeing-every-step-run)):
 
 | Status | RAG type | How it works | Best for | LLM calls |
@@ -183,15 +183,17 @@ and the guide is **[Evaluating every stage →](https://aion7891.github.io/rag-t
 | ✅ Available | [**Simple RAG**](https://aion7891.github.io/rag-titan/rag-types/#simple-rag-simple)<br>`rag_type="simple"` | Retrieve → Rerank → Generate | Fast answers to clear questions | 1 |
 | ✅ Available | [**Adaptive RAG**](https://aion7891.github.io/rag-titan/rag-types/#adaptive-rag-adaptive)<br>`rag_type="adaptive"` | Route → Retrieve → Check evidence → Rewrite & retry | Mixed questions, fewer wrong answers | 2–5 |
 | ✅ Available | [**Parent-Child RAG**](https://aion7891.github.io/rag-titan/rag-types/#parent-child-rag-parent_child)<br>`rag_type="parent_child"` | Retrieve small chunks → Rerank → Expand to their sections → Generate | Answers that span a section | 1 |
+| ✅ Available | [**HyDE RAG**](https://aion7891.github.io/rag-titan/rag-types/#hyde-rag-hyde)<br>`rag_type="hyde"` | Write a made-up answer → Search with it and the question → Fuse → Generate | Questions worded unlike the documents | 2 |
+| ✅ Available | [**RAG-Fusion**](https://aion7891.github.io/rag-titan/rag-types/#rag-fusion-rag_fusion)<br>`rag_type="rag_fusion"` | Write rewordings → Search each and the question → Fuse → Generate | Questions worded unlike the documents | 2 |
 
 ```python
 from rag_titan import RAG_TYPES
-print(RAG_TYPES)        # ['simple', 'adaptive', 'parent_child']
+print(RAG_TYPES)        # ['simple', 'adaptive', 'parent_child', 'hyde', 'rag_fusion']
 ```
 
 Every type can be tuned (`TOP_K`, `TOP_N`, retriever, reranker, ...) and has its own [playground page](https://aion7891.github.io/rag-titan/rag-playground/) with knobs.
 
-**Coming next** (not available yet): Corrective RAG · Multi-query RAG · HyDE · Self-RAG · Graph RAG · Agentic RAG. → [Roadmap](https://aion7891.github.io/rag-titan/roadmap/)
+**Coming next** (not available yet): Corrective RAG · Self-RAG · Graph RAG · Agentic RAG. → [Roadmap](https://aion7891.github.io/rag-titan/roadmap/)
 
 > Also included: a tool-calling [agent](https://aion7891.github.io/rag-titan/agents/) loop. It's a separate feature, not a `rag_type`.
 
@@ -205,6 +207,14 @@ Every type can be tuned (`TOP_K`, `TOP_N`, retriever, reranker, ...) and has its
 
 <p align="center">
   <a href="https://aion7891.github.io/rag-titan/rag-types/#parent-child-rag-parent_child"><img src="https://cdn.jsdelivr.net/gh/aion7891/rag-titan@main/docs/assets/images/parent-child-rag.svg" alt="Parent-Child RAG: search small chunks, answer with the whole section" width="100%"></a>
+</p>
+
+<p align="center">
+  <a href="https://aion7891.github.io/rag-titan/rag-types/#hyde-rag-hyde"><img src="https://cdn.jsdelivr.net/gh/aion7891/rag-titan@main/docs/assets/images/hyde-rag.svg" alt="HyDE RAG: search with a made-up answer, answer from real chunks" width="100%"></a>
+</p>
+
+<p align="center">
+  <a href="https://aion7891.github.io/rag-titan/rag-types/#rag-fusion-rag_fusion"><img src="https://cdn.jsdelivr.net/gh/aion7891/rag-titan@main/docs/assets/images/rag-fusion-rag.svg" alt="RAG-Fusion: several rewordings, one fused list" width="100%"></a>
 </p>
 
 ## Explore the docs

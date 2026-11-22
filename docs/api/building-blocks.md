@@ -12,6 +12,8 @@
 
 ::: rag_titan.retrieval
 
+::: rag_titan.retrieval.fusion
+
 ::: rag_titan.retrieval.rerankers
 
 ::: rag_titan.evaluation

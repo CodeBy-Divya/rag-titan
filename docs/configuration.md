@@ -66,6 +66,8 @@ reranking. Left empty, each type uses its own sizes:
 | `simple`       | 5       | 2       | – |
 | `adaptive`     | 4       | 2       | `ADAPTIVE_MAX_ATTEMPTS` (2). A complex question searches 2 × `TOP_K`; each retry adds `TOP_K` more |
 | `parent_child` | 8       | 4       | `PARENT_SIZE` (1500, used when indexing), `PARENT_BUDGET` (3000) |
+| `hyde`         | 5       | 2       | `HYDE_WITH_QUESTION` (true): also search with the question |
+| `rag_fusion`   | 5       | 2       | `FUSION_QUERIES` (3): rewordings to search with |
 
 `TOP_N` can never be more than `TOP_K`. Set only `TOP_K` and `TOP_N` follows:
 it keeps the type's own size, or `TOP_K` when that is smaller.

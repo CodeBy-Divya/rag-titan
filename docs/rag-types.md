@@ -2,7 +2,7 @@
 
 ## Supported RAG types
 
-rag-titan supports **3 RAG types**. Every one has the same methods,
+rag-titan supports **5 RAG types**. Every one has the same methods,
 `answer(question)` and [`run(question)`](#seeing-every-step-run), and with
 `RAGTitan` you pick one using `rag_type`. Each one has its own
 [playground page](rag-playground.md) with tuning knobs.
@@ -12,18 +12,20 @@ rag-titan supports **3 RAG types**. Every one has the same methods,
 | ✅ Available | [**Simple RAG**](#simple-rag-simple)<br>`rag_type="simple"` | Retrieve → Rerank → Generate | Fast answers to clear questions | 1 |
 | ✅ Available | [**Adaptive RAG**](#adaptive-rag-adaptive)<br>`rag_type="adaptive"` | Route → Retrieve → Check evidence → Rewrite & retry | Mixed questions, fewer wrong answers | 2–5 |
 | ✅ Available | [**Parent-Child RAG**](#parent-child-rag-parent_child)<br>`rag_type="parent_child"` | Retrieve small chunks → Rerank → Expand to their sections → Generate | Answers that span a section: steps, lists, rules with exceptions | 1 |
+| ✅ Available | [**HyDE RAG**](#hyde-rag-hyde)<br>`rag_type="hyde"` | Write a made-up answer → Search with it and the question → Fuse → Rerank → Generate | Questions worded unlike the documents | 2 |
+| ✅ Available | [**RAG-Fusion**](#rag-fusion-rag_fusion)<br>`rag_type="rag_fusion"` | Write rewordings → Search each and the question → Fuse → Rerank → Generate | Questions worded unlike the documents, keyword search | 2 |
 
 ```python
 from rag_titan import RAG_TYPES, RAGTitan
 
-print(RAG_TYPES)                      # ['simple', 'adaptive', 'parent_child']
+print(RAG_TYPES)   # ['simple', 'adaptive', 'parent_child', 'hyde', 'rag_fusion']
 rag = RAGTitan(rag_type="adaptive")   # any value from RAG_TYPES
 ```
 
 Asking for a type that does not exist yet raises a clear error:
 
 ```text
-ValueError: Unknown RAG type: graph. Choose from ['simple', 'adaptive', 'parent_child']
+ValueError: Unknown RAG type: graph. Choose from ['simple', 'adaptive', 'parent_child', 'hyde', 'rag_fusion']
 ```
 
 Every RAG type is tuned with the same settings, in `.env`, in
@@ -348,6 +350,246 @@ Here’s what you have to do before your last day, according to the document:
 *   Use up your remaining leave days or agree with HR that they are paid out with your last salary [chunk_6].
 ```
 
+## HyDE RAG (`"hyde"`)
+
+```
+Question -> Write a made-up answer -> Search with it -> Search with the question
+         -> Fuse the two lists (RRF) -> Rerank -> Generate
+```
+
+A question and its answer are worded differently: *"What gear does a newcomer
+receive?"* shares no word with *"On your first day the service desk hands out your
+laptop"*. HyDE asks the model to write a short **made-up answer** first and
+searches with it, because an answer reads like the documents. The made-up text is
+only a search query: the reranker and the answer use your question, and only real
+chunks reach the model. Inspired by *Precise Zero-Shot Dense Retrieval without
+Relevance Labels* (Gao et al. 2022; RAG handbook 2026, section 08).
+
+![HyDE RAG flow](assets/images/hyde-rag.svg)
+
+- **Good for:** questions worded far from the documents, especially with keyword
+  search.
+- **Watch out:** the made-up answer can be wrong (the handbook: "hallucinated
+  hypotheticals can mislead"). That is why the question is searched too by default
+  and the two lists are fused: a wrong guess cannot take over the results alone.
+- **LLM calls per question:** 2
+- **Knobs:** `top_k`, `top_n` (default 5 and 2), `hyde_with_question` (default on)
+- **Try it:** [HyDE RAG playground](rag-playground/hyde.md)
+
+Every knob, set and explained (`examples/hyde_rag.py`):
+
+```python
+"""
+HyDE RAG with every knob set and explained: the model writes a made-up answer,
+both the made-up answer and the question are searched, and the two lists are
+fused. The answer comes from the real chunks only.
+
+The question uses other words than the documents ("gear", "newcomer" for
+"equipment", "new employees"), and keyword search (bm25) only finds shared words,
+so a plain search finds nothing here.
+
+Before running (Ollama installed and running):
+    ollama pull gemma3:4b
+    ollama pull nomic-embed-text
+
+Run (from the repo root):
+    python examples/hyde_rag.py
+"""
+
+from pathlib import Path
+
+from rag_titan import RAGTitan
+
+files = sorted((Path(__file__).parent / "retrieval_docs").glob("*.md"))
+question = "What gear does a newcomer receive?"
+
+settings = {
+    # how the files are cut (CHUNKER, CHUNK_SIZE, CHUNK_OVERLAP)
+    "chunker": "paragraph",
+    "chunk_size": 300,
+    "chunk_overlap": 0,
+    # how chunks are found and chosen (RETRIEVER, RERANKER, TOP_K, TOP_N)
+    "retriever": "bm25",       # exact words: the made-up answer brings the documents' words
+    "reranker": "keyword",     # ranks the fused chunks against the original question
+    "top_k": 5,                # chunks the fused search returns
+    "top_n": 2,                # chunks the model reads
+    # HyDE's own knob (HYDE_WITH_QUESTION): also search with the question and fuse
+    # both lists; False searches with the made-up answer alone, like the paper
+    "hyde_with_question": True,
+}
+
+rag = RAGTitan(rag_type="hyde", settings=settings)
+rag.index(files)
+result = rag.run(question)
+
+steps = {step["step"]: step for step in result["steps"]}
+print(f"Question: {question}")
+print(f"Made-up answer (only used to search): {steps['hypothesize']['output']}")
+searches = [step for step in result["steps"] if step["step"] == "retrieve"]
+for number, search in enumerate(searches, start=1):
+    files_found = sorted({chunk["source"] for chunk in search["output"]})
+    print(f"Search {number} finds: {', '.join(files_found) or 'nothing'}")
+print(f"The model reads: {', '.join(chunk['source'] for chunk in result['sources'])}")
+print(f"Answer: {result['answer']}")
+```
+
+A real run (`gemma3:4b`). The made-up answer invents a water bottle and a polo
+shirt, but it uses the documents' words ("new employees", "laptop"), so keyword
+search finds `new_starters.md`; the question alone finds nothing. Only the real
+laptop, badge and headset reach the answer.
+
+```text
+Question: What gear does a newcomer receive?
+Made-up answer (only used to search): New employees are provided with a standard starter kit upon hire. This kit includes a company-issued laptop, a mobile phone with business data, a company-branded water bottle, and a welcome package containing essential documents and a company-branded polo shirt. All new hires also receive access to the company’s online training portal and intranet.
+Search 1 finds: account_errors.md, lost_device.md, new_starters.md, vpn_errors.md
+Search 2 finds: nothing
+The model reads: lost_device.md, new_starters.md
+Answer: On your first day the service desk hands out your laptop, badge and headset. [chunk_3, page 1]
+```
+
+## RAG-Fusion (`"rag_fusion"`)
+
+```
+Question -> Write N rewordings -> Search the question -> Search each rewording
+         -> Fuse the lists (RRF) -> Rerank -> Generate
+```
+
+One wording of a question finds what matches that wording. RAG-Fusion asks the
+model for a few **rewordings** in one call, searches with each of them and with the
+question, and merges the lists with **Reciprocal Rank Fusion**: a chunk found near
+the top by several queries comes first. Inspired by *RAG-Fusion* (Raudaschl 2023;
+RAG handbook 2026, Multi-Query RAG and RAG-Fusion), with RRF as in Cormack, Clarke
+and Buettcher (2009).
+
+![RAG-Fusion flow](assets/images/rag-fusion-rag.svg)
+
+- **Good for:** questions worded unlike the documents, and keyword search, which
+  only finds shared words.
+- **Watch out:** each rewording is one more search, and small models' rewordings
+  can drift (*"beginner motorcycle kit"* below). Fusion trusts agreement: a chunk
+  found first by one query but missed by the others can lose to one that every
+  query finds lower down (see the [playground](rag-playground/rag-fusion.md)).
+- **LLM calls per question:** 2 (the rewordings, the answer); `fusion_queries` + 1 searches
+- **Knobs:** `top_k`, `top_n` (default 5 and 2), `fusion_queries` (default 3, at most 10)
+- **Try it:** [RAG-Fusion playground](rag-playground/rag-fusion.md)
+
+Every knob, set and explained (`examples/rag_fusion_rag.py`):
+
+```python
+"""
+RAG-Fusion with every knob set and explained: the model writes a few rewordings
+of the question, the question and every rewording are searched, and the result
+lists are fused (Reciprocal Rank Fusion), so chunks found by several wordings
+come first.
+
+The question uses other words than the documents ("gear", "newcomer" for
+"equipment", "new employees"), and keyword search (bm25) only finds shared words,
+so a plain search finds nothing here.
+
+Before running (Ollama installed and running):
+    ollama pull gemma3:4b
+    ollama pull nomic-embed-text
+
+Run (from the repo root):
+    python examples/rag_fusion_rag.py
+"""
+
+from pathlib import Path
+
+from rag_titan import RAGTitan
+
+files = sorted((Path(__file__).parent / "retrieval_docs").glob("*.md"))
+question = "What gear does a newcomer receive?"
+
+settings = {
+    # how the files are cut (CHUNKER, CHUNK_SIZE, CHUNK_OVERLAP)
+    "chunker": "paragraph",
+    "chunk_size": 300,
+    "chunk_overlap": 0,
+    # how chunks are found and chosen (RETRIEVER, RERANKER, TOP_K, TOP_N)
+    "retriever": "bm25",       # exact words: the rewordings bring other words
+    "reranker": "keyword",     # ranks the fused chunks against the original question
+    "top_k": 5,                # chunks the fused search returns
+    "top_n": 2,                # chunks the model reads
+    # RAG-Fusion's own knob (FUSION_QUERIES): rewordings to write, 1 to 10;
+    # each one is a search, next to the question's
+    "fusion_queries": 3,
+}
+
+rag = RAGTitan(rag_type="rag_fusion", settings=settings)
+rag.index(files)
+result = rag.run(question)
+
+steps = {step["step"]: step for step in result["steps"]}
+queries = [question, *steps["write_queries"]["output"]]
+print(f"Question: {question}")
+for number, query in enumerate(queries, start=1):
+    print(f"  query {number}: {query}")
+print("Fused, best first (each chunk's rank for every query that found it):")
+for chunk in steps.get("fuse_queries", {}).get("output", []):
+    ranks = ", ".join(f"{name.replace('_rank', '').replace('_', ' ')} #{rank}"
+                      for name, rank in chunk["score_trace"].items() if name.endswith("_rank"))
+    print(f"  {chunk['source']:18} {ranks}")
+print(f"The model reads: {', '.join(chunk['source'] for chunk in result['sources'])}")
+print(f"Answer: {result['answer']}")
+```
+
+A real run. Keyword search finds nothing for the question and for two of the
+rewordings; *"new player equipment"* shares the word "equipment" with
+`new_starters.md`, and one good rewording is enough.
+
+```text
+Question: What gear does a newcomer receive?
+  query 1: What gear does a newcomer receive?
+  query 2: newcomer starting gear
+  query 3: new player equipment
+  query 4: beginner motorcycle kit
+Fused, best first (each chunk's rank for every query that found it):
+  new_starters.md    query 3 #1
+  account_errors.md  query 3 #2
+The model reads: new_starters.md, account_errors.md
+Answer: On your first day the service desk hands out your laptop, badge and headset [chunk_3].
+```
+
+### HyDE and RAG-Fusion against Simple RAG
+
+The same help desk documents and six questions (three with error codes, three in
+other words than the documents), compared with one command:
+
+```bash
+rag-titan evaluate --files examples/retrieval_docs/*.md --questions examples/retrieval_questions.json \
+    --rag-type simple hyde rag_fusion --retriever dense bm25 --chunker paragraph
+```
+
+One real run (`gemma3:4b`, `nomic-embed-text`; "Recall" is the share of the needed
+files that reached the model):
+
+```text
+setup                             Recall       MRR      nDCG  Answered     Steps
+--------------------------------------------------------------------------------
+simple + paragraph + dense         1.000     1.000     1.000       83%       3.0
+hyde + paragraph + dense           1.000     1.000     1.000       83%       6.0
+rag_fusion + paragraph + dense     1.000     1.000     1.000       83%       8.0
+simple + paragraph + bm25          0.500     0.500     0.500       50%       3.0
+hyde + paragraph + bm25            0.833     0.833     0.833       50%       6.0
+rag_fusion + paragraph + bm25      0.833     0.833     0.833       50%       8.0
+```
+
+- **With keyword search** both find the right file for two of the three reworded
+  questions that Simple RAG misses (recall 0.500 → 0.833).
+- **With vector search** there was nothing to fix: Simple RAG already found every
+  file.
+- **The answers did not follow** in this run: with the right file in front of it,
+  the small model still declined those questions (the files say "company
+  computer" and "new employees", the questions "notebook" and "newcomer"). A
+  4-billion-parameter model's replies also vary from run to run: the example above
+  answered the newcomer question. Better search is half of it; measure the answers
+  on your own questions and model.
+
+**What is simplified:** HyDE writes one made-up answer (the paper averages the
+embeddings of several, plus the question's) and fuses the two searches by rank;
+RAG-Fusion fuses with plain RRF (`k = 60`), with no weights per query.
+
 ## Comparing RAG types
 
 `rag-titan evaluate` runs every RAG type on your test questions and scores them
@@ -355,7 +597,7 @@ Here’s what you have to do before your last day, according to the document:
 index of its own, so the other types keep their chunks:
 
 ```bash
-rag-titan evaluate --files *.md --questions questions.json --rag-type simple adaptive parent_child
+rag-titan evaluate --files *.md --questions questions.json --rag-type simple adaptive parent_child hyde rag_fusion
 ```
 
 In Python, build the parts for each type (Parent-Child RAG needs its own index):
@@ -437,8 +679,6 @@ so code that uses `RAGTitan` keeps working.
 | Status | RAG type | Idea |
 |---|---|---|
 | 🔜 Planned | Corrective RAG (CRAG) | Grade each chunk and fall back to web search when they are weak |
-| 🔜 Planned | Multi-query RAG | Ask several versions of the question and merge the results |
-| 🔜 Planned | HyDE | Write a hypothetical answer first, then search with it |
 | 🔜 Planned | Self-RAG | The model checks and improves its own answer |
 | 🔜 Planned | Graph RAG | Search a knowledge graph built from your documents |
 | 🔜 Planned | Agentic RAG | An agent decides when and what to search |
