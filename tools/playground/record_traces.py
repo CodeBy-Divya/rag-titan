@@ -11,6 +11,12 @@ Usage (from the repo root, Ollama running):
     python tools/playground/record_traces.py                     # record with gemma3:4b
     python tools/playground/record_traces.py --model qwen3:4b    # another chat model
     python tools/playground/record_traces.py --check             # replay, no Ollama needed
+    python tools/playground/record_traces.py --fresh             # ask the model for every reply
+
+Recording again keeps the replies and vectors already in presets.json for every
+prompt it meets again, so adding a RAG type or a knob value never changes the runs
+(and the "Things to try" claims) recorded before. Use --fresh after changing the
+model, or to record everything anew.
 
 Record again whenever prompts, RAG types, chunkers or the sample files change:
 --check (and the tests) fail until you do.
@@ -33,14 +39,20 @@ QUESTIONS = ROOT / "examples" / "questions.json"
 OUT = ROOT / "docs" / "assets" / "playground" / "presets.json"
 
 
-def record(model, embed_model):
+def record(model, embed_model, fresh=False):
     """Run everything with the real models and write presets.json."""
     documents = [load_document(path) for path in sorted(SAMPLES.glob("*.md"))]
     for document in documents:
         document.pop("file_type", None)   # the playground only needs source and text
 
+    earlier = None
+    if OUT.exists() and not fresh:
+        earlier = json.loads(OUT.read_text(encoding="utf-8"))
+        if (earlier.get("model"), earlier.get("embed_model")) != (model, embed_model):
+            earlier = None          # other models: their replies do not fit
     presets = record_presets(documents, load_questions(QUESTIONS), PRESET_CHUNKING,
-                             OllamaLLM(model), OllamaEmbedder(embed_model), grid=PRESET_GRID)
+                             OllamaLLM(model), OllamaEmbedder(embed_model), grid=PRESET_GRID,
+                             earlier=earlier)
 
     # compact JSON: the file is downloaded by every playground visitor
     OUT.write_text(json.dumps(presets, ensure_ascii=False, sort_keys=True,
@@ -68,12 +80,14 @@ def main(argv):
     parser.add_argument("--model", default="gemma3:4b", help="Ollama chat model")
     parser.add_argument("--embed-model", default="nomic-embed-text", help="Ollama embedding model")
     parser.add_argument("--check", action="store_true", help="replay instead of recording")
+    parser.add_argument("--fresh", action="store_true",
+                        help="ask the model for every reply, ignoring presets.json")
     args = parser.parse_args(argv)
 
     if args.check:
         check()
     else:
-        record(args.model, args.embed_model)
+        record(args.model, args.embed_model, args.fresh)
 
 
 if __name__ == "__main__":

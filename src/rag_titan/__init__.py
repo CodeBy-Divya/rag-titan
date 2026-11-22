@@ -13,17 +13,21 @@ from rag_titan.app import RAGTitan
 from rag_titan.config import get_settings
 from rag_titan.factory import RAG_TYPES, build_rag, build_rag_parts
 from rag_titan.rag_types.adaptive.adaptive_rag import AdaptiveRAG
+from rag_titan.rag_types.hyde_rag import HyDERAG
 from rag_titan.rag_types.parent_child_rag import ParentChildRAG
+from rag_titan.rag_types.rag_fusion_rag import RAGFusionRAG
 from rag_titan.rag_types.simple_rag import SimpleRAG
 from rag_titan.utils.logger import setup_logging
 
-__version__ = "0.12.1"
+__version__ = "0.13.0"
 
 __all__ = [
     "RAGTitan",
     "SimpleRAG",
     "AdaptiveRAG",
     "ParentChildRAG",
+    "HyDERAG",
+    "RAGFusionRAG",
     "RAG_TYPES",
     "build_rag",
     "build_rag_parts",

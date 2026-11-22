@@ -6,6 +6,43 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-22
+
+### Added
+- **HyDE RAG** (`rag_type="hyde"`): the model writes a short made-up answer, which
+  is searched together with the question; the two result lists are fused (RRF) and
+  the answer comes from the real chunks only. `HYDE_WITH_QUESTION` (default on;
+  off searches with the made-up answer alone, like the paper). Inspired by Gao et
+  al. (2022).
+- **RAG-Fusion** (`rag_type="rag_fusion"`): the model writes `FUSION_QUERIES`
+  rewordings (default 3) in one call; the question and every rewording are
+  searched and the lists fused with Reciprocal Rank Fusion. The model's reply is
+  read robustly (numbering, bullets, intro lines, duplicates, copies of the
+  question), and an unusable reply falls back to the question. Inspired by
+  Raudaschl (2023).
+- Both work with every retriever and reranker, `TOP_K` and `TOP_N`, and on the
+  command line (`--rag-type hyde rag_fusion`, `--no-hyde-with-question`,
+  `--fusion-queries`). Guide with a real comparison:
+  [RAG types](https://aion7891.github.io/rag-titan/rag-types/#hyde-rag-hyde). On
+  the help desk example with keyword search, both found the right files for 0.833
+  of the questions, Simple RAG for 0.500.
+- `rag_titan.retrieval.fusion`: `rrf_fuse`, `fuse_ranked` and `search_and_fuse`
+  (search several queries, fuse with RRF); `QueryTransformRAG`, the shared base
+  for RAG types that search with queries made from the question.
+- Playground pages for HyDE RAG and RAG-Fusion with their knobs; fused chunks show
+  their rank for every query. `examples/hyde_rag.py` and
+  `examples/rag_fusion_rag.py`.
+- Recording the playground again reuses the replies and vectors already recorded
+  (`record_traces.py --fresh` asks the model for everything), so adding a RAG type
+  never changes the runs recorded before. `RecordingLLM(..., known=...)`,
+  `RecordingEmbedder(..., known=...)`, `record_presets(..., earlier=...)`.
+
+### Changed
+- Hybrid search's RRF moved to `rag_titan.retrieval.fusion`; its results are
+  exactly the same.
+- Flow diagrams draw a step that repeats as a small loop with its step numbers
+  ("2–5"), and an arrow that skips a row around the side.
+
 ## [0.12.1] - 2026-11-22
 
 ### Added

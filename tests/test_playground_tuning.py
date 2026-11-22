@@ -7,6 +7,7 @@ import pytest
 from conftest import FakeEmbedder
 from test_playground import DOCUMENTS, QUESTIONS, MoodyLLM
 
+from rag_titan.factory import RAG_TYPES
 from rag_titan.llm import ReplayLLM
 from rag_titan.playground import (
     PRESET_CHUNKING,
@@ -97,12 +98,12 @@ def test_evaluate_tuned_sums_up_every_question(presets):
 def test_info_draws_every_rag_type_and_offers_the_knobs(presets):
     info = Playground(presets).info()
 
-    assert set(info["flows"]) == {"simple", "adaptive", "parent_child"}
+    assert set(info["flows"]) == set(RAG_TYPES)
     expand = [n["id"] for n in info["flows"]["parent_child"]["dense"]["nodes"]]
     assert expand == ["retrieve", "rerank", "expand", "generate"]
     assert info["rerankers"] == ["keyword", "none", "mmr", "llm"]
     assert info["defaults"] == default_tuning() and info["parent_sizes"] == [1500]
-    assert info["rag_types"] == ["simple", "adaptive", "parent_child"]
+    assert info["rag_types"] == RAG_TYPES
 
 
 @pytest.mark.parametrize("tuning, message", [
@@ -161,3 +162,27 @@ def test_a_recorded_grid_replays_every_knob_value():
     small = playground.run("word", "parent_child", "q1", tuning={"parent_size": 60})
     assert small["recorded"] and small["steps"][2]["step"] == "expand"
     assert check_presets(presets) == []
+
+
+QUERY_GRID = {"hyde": {"hyde_with_question": [True, False]},
+              "rag_fusion": {"fusion_queries": [1, 3]}}
+
+
+def test_the_query_transformation_knobs_record_and_replay():
+    presets = record_presets(DOCUMENTS, QUESTIONS, PRESET_CHUNKING, MoodyLLM(), FakeEmbedder(),
+                             grid=QUERY_GRID)
+    playground = Playground(presets)
+
+    alone = playground.run("word", "hyde", "q1", tuning={"hyde_with_question": False})
+    assert alone["recorded"] and "fuse_queries" not in [s["step"] for s in alone["steps"]]
+    one = playground.run("word", "rag_fusion", "q1", tuning={"fusion_queries": 1})
+    assert one["recorded"] and one["steps"][0]["step"] == "write_queries"
+    assert check_presets(presets) == []
+
+
+def test_the_query_transformation_defaults_for_the_pages():
+    defaults = default_tuning()
+    assert defaults["hyde"] == {"top_k": 5, "top_n": 2, "hyde_with_question": True}
+    assert defaults["rag_fusion"] == {"top_k": 5, "top_n": 2, "fusion_queries": 3}
+    assert check_tuning({"hyde_with_question": False, "fusion_queries": 4}, [1500]) == {
+        "hyde_with_question": False, "fusion_queries": 4}

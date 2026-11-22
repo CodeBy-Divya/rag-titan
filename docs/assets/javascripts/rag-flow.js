@@ -52,23 +52,36 @@ const RagFlow = (() => {
 
     const widest = Math.max(...byRow.map((ids) => ids.length));
     const inner = widest * SIZE.w + (widest - 1) * SIZE.gapX;
+    // an arrow that skips a row goes round the left side, so it needs room there
+    const skips = flow.edges.some(([a, b]) => !back.has(`${a}>${b}`) && row[b] - row[a] > 1);
+    const left = skips ? SIZE.loop : 0;
     const pos = {};
     byRow.forEach((ids, r) => {
       const used = ids.length * SIZE.w + (ids.length - 1) * SIZE.gapX;
       ids.forEach((id, i) => {
-        pos[id] = { x: SIZE.pad + (inner - used) / 2 + i * (SIZE.w + SIZE.gapX),
+        pos[id] = { x: left + SIZE.pad + (inner - used) / 2 + i * (SIZE.w + SIZE.gapX),
                     y: SIZE.pad + r * (SIZE.h + SIZE.gapY) };
       });
     });
     const height = SIZE.pad * 2 + byRow.length * SIZE.h + (byRow.length - 1) * SIZE.gapY;
-    return { pos, back, width: SIZE.pad * 2 + inner + (back.size ? SIZE.loop : 0), height };
+    return { pos, back, width: left + SIZE.pad * 2 + inner + (back.size ? SIZE.loop : 0), height };
   }
 
   function edgePath(a, b, isLoop) {
+    if (a === b) {   // a step that repeats (one search per query): a small loop on its right
+      const x = a.x + SIZE.w, top = a.y + SIZE.h * 0.25, bottom = a.y + SIZE.h * 0.75;
+      return `M${x} ${top} C${x + 36} ${top - 12} ${x + 36} ${bottom + 12} ${x + 4} ${bottom}`;
+    }
     if (isLoop) {   // out of the right side, round, into the right side of the earlier step
       const x = Math.max(a.x, b.x) + SIZE.w + SIZE.loop - 8;
       return `M${a.x + SIZE.w} ${a.y + SIZE.h / 2} C${x} ${a.y + SIZE.h / 2} ${x} ${b.y + SIZE.h / 2} `
         + `${b.x + SIZE.w + 4} ${b.y + SIZE.h / 2}`;
+    }
+    if (b.y - a.y > SIZE.h + SIZE.gapY && Math.abs(a.x - b.x) < 1) {
+      // skips a row in the same column: round the left side, not through the box between
+      const x = a.x - SIZE.loop + 10;
+      return `M${a.x} ${a.y + SIZE.h / 2} C${x} ${a.y + SIZE.h / 2} ${x} ${b.y + SIZE.h / 2} `
+        + `${b.x - 4} ${b.y + SIZE.h / 2}`;
     }
     const [x1, y1, x2, y2] = [a.x + SIZE.w / 2, a.y + SIZE.h, b.x + SIZE.w / 2, b.y - 4];
     const mid = (y1 + y2) / 2;
@@ -86,6 +99,17 @@ const RagFlow = (() => {
       svg("path", { d: "M0 0 L10 5 L0 10 z", class: `rf-head rf-head-${kind}` }, head);
     });
     return ids;
+  }
+
+  // step numbers of a node's visits, runs shortened: [2, 3, 4, 5] -> "2–5", [2, 5] -> "2 · 5"
+  function badgeText(numbers) {
+    const parts = [];
+    numbers.forEach((n, i) => {
+      const last = parts[parts.length - 1];
+      if (i > 0 && n === numbers[i - 1] + 1) last[1] = n; else parts.push([n, n]);
+    });
+    return parts.map(([a, b]) => (a === b ? `${a}` : b === a + 1 ? `${a} · ${b}` : `${a}–${b}`))
+      .join(" · ");
   }
 
   function render(container, flow, options) {
@@ -140,7 +164,7 @@ const RagFlow = (() => {
       if (!node) throw new Error(`Step "${step.step}" is not in this FLOW`);
       Object.values(nodes).forEach((n) => n.group.classList.remove("rf-current"));
       node.visits.push({ number: i + 1, step });
-      node.badge.textContent = node.visits.map((v) => v.number).join(" · ");
+      node.badge.textContent = badgeText(node.visits.map((v) => v.number));
       node.group.classList.add("rf-visited", "rf-current");
       // a step that failed (a model reply not recorded) is drawn dashed
       if (step.output && typeof step.output === "object" && "error" in step.output) {

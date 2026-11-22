@@ -148,6 +148,10 @@ def _tuning_settings():
         "adaptive_max_attempts": _get_int("ADAPTIVE_MAX_ATTEMPTS", 2),
         # parent_child: most characters of parent sections given to the model
         "parent_budget": _get_int("PARENT_BUDGET", 3000),
+        # hyde: also search with the question and fuse it with the made-up answer's search
+        "hyde_with_question": _get_bool("HYDE_WITH_QUESTION", True),
+        # rag_fusion: rewordings of the question to search with (1 to 10)
+        "fusion_queries": _get_int("FUSION_QUERIES", 3),
     }
 
 

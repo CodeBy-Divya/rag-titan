@@ -42,6 +42,8 @@ cp .env.example .env
 | `TOP_N`           | `top_n`           | type's own (2 / 2 / 4)   | Chunks kept after reranking; at most `TOP_K` |
 | `ADAPTIVE_MAX_ATTEMPTS` | `adaptive_max_attempts` | `2`          | `adaptive`: searches before giving up      |
 | `PARENT_BUDGET`   | `parent_budget`   | `3000`                   | `parent_child`: most characters of parent text given to the model |
+| `HYDE_WITH_QUESTION` | `hyde_with_question` | `true`             | `hyde`: also search with the question and fuse it with the made-up answer's search |
+| `FUSION_QUERIES`  | `fusion_queries`  | `3`                      | `rag_fusion`: rewordings of the question to search with (1 to 10) |
 | `GENERATOR`       | `generator`       | `grounded`               | How answers are written                        |
 | `LOG_LEVEL`       | –                 | `INFO`                   | Used by `setup_logging()`                      |
 
@@ -64,6 +66,8 @@ reranking. Left empty, each type uses its own sizes:
 | `simple`       | 5       | 2       | – |
 | `adaptive`     | 4       | 2       | `ADAPTIVE_MAX_ATTEMPTS` (2). A complex question searches 2 × `TOP_K`; each retry adds `TOP_K` more |
 | `parent_child` | 8       | 4       | `PARENT_SIZE` (1500, used when indexing), `PARENT_BUDGET` (3000) |
+| `hyde`         | 5       | 2       | `HYDE_WITH_QUESTION` (true): also search with the question |
+| `rag_fusion`   | 5       | 2       | `FUSION_QUERIES` (3): rewordings to search with |
 
 `TOP_N` can never be more than `TOP_K`. Set only `TOP_K` and `TOP_N` follows:
 it keeps the type's own size, or `TOP_K` when that is smaller.

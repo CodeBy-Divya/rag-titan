@@ -30,6 +30,10 @@ PRESET_GRID = {
                  "reranker": RERANKER_VALUES},
     "parent_child": {"top_k": [4, 8, 12], "top_n": [2, 4, 6], "parent_budget": [300, 600, 3000],
                      "parent_size": [1500, 200], "reranker": RERANKER_VALUES},
+    "hyde": {"top_k": [3, 5, 8], "top_n": [1, 2, 3], "hyde_with_question": [True, False],
+             "reranker": RERANKER_VALUES},
+    "rag_fusion": {"top_k": [3, 5, 8], "top_n": [1, 2, 3], "fusion_queries": [1, 3, 5],
+                   "reranker": RERANKER_VALUES},
 }
 
 
@@ -51,7 +55,7 @@ def grid_tunings(rag_type, grid, reranker):
     return tunings
 
 
-def record_presets(documents, questions, chunking, llm, embedder, grid=None):
+def record_presets(documents, questions, chunking, llm, embedder, grid=None, earlier=None):
     """
     Run and record every RAG type x chunking x retriever x tuning x question.
 
@@ -63,13 +67,18 @@ def record_presets(documents, questions, chunking, llm, embedder, grid=None):
         embedder: the real embedder, e.g. OllamaEmbedder("nomic-embed-text").
         grid: the knob values to record, e.g. PRESET_GRID; None records the
             defaults only.
+        earlier: optional, an earlier recording (presets dict). Prompts and texts
+            it holds reuse its replies and vectors, so the runs recorded before
+            stay exactly the same and only new ones ask the model.
 
     Returns:
         A JSON-ready dict: documents, questions, settings, the grid, the recorded
         replies and vectors, and the expected summary of every run:
         expected[chunking][retriever][rag_type][tuning label][question id].
     """
-    llm, embedder = RecordingLLM(llm), RecordingEmbedder(embedder)
+    earlier = earlier or {}
+    llm = RecordingLLM(llm, known=earlier.get("replies"))
+    embedder = RecordingEmbedder(embedder, known=earlier.get("vectors"))
     parent_sizes = ((grid or {}).get("parent_child", {}).get("parent_size")
                     or [default_tuning()["parent_child"]["parent_size"]])
     presets = {"model": llm.model, "embed_model": embedder.model, "documents": documents,

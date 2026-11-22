@@ -219,6 +219,10 @@ A retriever made of several steps can draw them: see `SEARCH_FLOW` and
 4. add it to `RAG_TYPES`, `CLASSES` and `build_rag()` in
    `rag_types/rag_registry.py`; give the class `DEFAULT_TOP_K` / `DEFAULT_TOP_N`
    so `TOP_K` and `TOP_N` work for it, and its own options to `TYPE_OPTIONS`
+   A RAG type that searches with several queries made from the question (like
+   HyDE and RAG-Fusion) can inherit `QueryTransformRAG` instead and only write
+   `search_queries(query, trace)`: the searching, fusing, reranking and answer
+   come with it
 5. export it in `rag_types/__init__.py`
 6. add tests in `tests/` (use `FakeLLM` and `FakeEmbedder` from `conftest.py`).
    `tests/test_traces.py` already checks every type in `RAG_TYPES`: it fails
