@@ -8,8 +8,8 @@
 - [x] Adaptive RAG (`"adaptive"`), available since 0.1.0
 - [x] Parent-Child RAG (`"parent_child"`): search small chunks, answer with their sections, available since 0.12.0
 - [ ] Corrective RAG (CRAG): grade chunks, fall back to web search
-- [ ] Multi-query RAG: ask several versions of the question
-- [ ] HyDE: search with a hypothetical answer
+- [x] HyDE RAG (`"hyde"`): search with a made-up answer and the question, available since 0.13.0
+- [x] RAG-Fusion (`"rag_fusion"`): search several rewordings, fuse with RRF, available since 0.13.0
 - [ ] Self-RAG: the model critiques its own answer
 - [ ] Graph RAG: use a knowledge graph
 - [ ] Agentic RAG: an agent decides when and what to search
