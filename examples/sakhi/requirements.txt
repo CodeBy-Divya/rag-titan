@@ -1,0 +1,36 @@
+# ============================================================
+#  SAKHI — requirements.txt (Apple Silicon / M1/M2 compatible)
+# ============================================================
+
+# ── API FRAMEWORK ────────────────────────────────────────────
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+python-multipart==0.0.20
+python-dotenv==1.0.1
+
+# ── LANGCHAIN ECOSYSTEM ──────────────────────────────────────
+langchain==0.3.13
+langchain-core>=0.3.29,<0.4.0
+langchain-groq==0.2.3
+langgraph==0.2.59
+langsmith==0.2.3
+
+# ── VECTOR DATABASE ──────────────────────────────────────────
+chromadb==0.6.3
+
+# ── EMBEDDINGS (OpenRouter API — no local model needed) ──────────────────────
+openai>=1.30.0                      # OpenAI-compatible client for OpenRouter
+
+# ── PDF PROCESSING ───────────────────────────────────────────
+pymupdf==1.25.1
+
+# ── DATA & UTILITIES ─────────────────────────────────────────
+pydantic==2.10.4
+numpy<2.0.0                         # CRITICAL: Fixes crashes with NumPy 2.x
+tqdm==4.67.1
+tiktoken==0.8.0
+
+# ── DEV & TESTING ───────────────────────────────────────────
+httpx==0.28.1
+pytest==8.3.4
+pytest-asyncio==0.25.0

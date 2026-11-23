@@ -217,6 +217,19 @@ Every type can be tuned (`TOP_K`, `TOP_N`, retriever, reranker, ...) and has its
   <a href="https://aion7891.github.io/rag-titan/rag-types/#rag-fusion-rag_fusion"><img src="https://cdn.jsdelivr.net/gh/aion7891/rag-titan@main/docs/assets/images/rag-fusion-rag.svg" alt="RAG-Fusion: several rewordings, one fused list" width="100%"></a>
 </p>
 
+## Prebuilt RAG Implementations
+
+### ⚖️ [Sakhi — Multilingual Legal Reasoning RAG](./examples/sakhi)
+Located in [`examples/sakhi`](./examples/sakhi):
+- **Domain**: Legal advisory, rights education, and statutory citation across 40+ Indian Acts.
+- **Workflow Engine**: **LangGraph** StateGraph featuring intent understanding, slang normalization, 3-way multi-angle query rewrites, and score-filtered retrieval.
+- **Embeddings**: `qwen/qwen3-embedding-8b` (OpenRouter API) with 4,096-dimensional multilingual embeddings.
+- **Vector Database**: **ChromaDB** with HNSW indexing.
+- **Fast Reasoning**: **Groq Cloud** running `openai/gpt-oss-120b`.
+- **Client & Server**: **FastAPI** backend + **React 19 / Vite 6** dark glassmorphic chat interface.
+
+Check out the full walkthrough: [Sakhi Architecture & Quickstart](./examples/sakhi/README.md).
+
 ## Explore the docs
 
 Click any picture to open its page.
